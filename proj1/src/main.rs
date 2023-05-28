@@ -5,7 +5,7 @@ use std::{
     vec,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Tile {
     Road,
     Field,
@@ -42,6 +42,7 @@ impl Tile {
     }
 }
 
+#[derive(Copy, Clone)]
 enum Status {
     None,
     Up,
@@ -52,6 +53,7 @@ enum Status {
     Open,
 }
 
+#[derive(Clone)]
 struct Map {
     map: Vec<Vec<(Tile, Status)>>,
     start: (u32, u32),
@@ -220,4 +222,8 @@ fn main() {
     let map = read_map("map.txt");
 
     println!("The map data has been read successfully: {:?}", map);
+
+    let map2 = map.clone();
+
+    println!("The map data has been cloned: {:?}", map2);
 }
