@@ -59,6 +59,8 @@ type Vec2 = (usize, usize);
 #[derive(Clone)]
 struct Map {
     map: Vec<Vec<Spot>>,
+    costs: Vec<Vec<u32>>,
+    display_costs: bool,
     dim: Vec2,
     start: Vec2,
     goal: Vec2,
@@ -133,6 +135,8 @@ impl Map {
         let mut line_num = 0;
         let mut map = Map {
             map: vec![],
+            costs: vec![],
+            display_costs: false,
             dim,
             start,
             goal,
@@ -175,27 +179,33 @@ impl Map {
         for (r, row) in self.map.iter().enumerate() {
             let check_row = r == self.start.1 || r == self.goal.1;
             for (c, tile) in row.iter().enumerate() {
-                s += match tile.0 {
-                    Terrain::Road => "R",
-                    Terrain::Field => "f",
-                    Terrain::Forest => "F",
-                    Terrain::Hills => "h",
-                    Terrain::River => "r",
-                    Terrain::Mountians => "M",
-                    Terrain::Water => "W",
-                };
-                s += match tile.1 {
-                    Status::None => " ",
-                    Status::Path => "█",
-                    Status::Up(true)
-                    | Status::Down(true)
-                    | Status::Left(true)
-                    | Status::Right(true) => "▒",
-                    Status::Up(false) => "↑",    // ⬆
-                    Status::Down(false) => "↓",  // ⬇
-                    Status::Left(false) => "←",  // ⬅
-                    Status::Right(false) => "→", // ⮕
-                };
+                if self.display_costs {
+                    let ss = &format!("{:0width$}", self.costs[r][c], width = 2);
+                    s += ss;
+                } else {
+                    s += match tile.0 {
+                        Terrain::Road => "R",
+                        Terrain::Field => "f",
+                        Terrain::Forest => "F",
+                        Terrain::Hills => "h",
+                        Terrain::River => "r",
+                        Terrain::Mountians => "M",
+                        Terrain::Water => "W",
+                    };
+                    s += match tile.1 {
+                        Status::None => " ",
+                        Status::Path => "█",
+                        Status::Up(true)
+                        | Status::Down(true)
+                        | Status::Left(true)
+                        | Status::Right(true) => "▒",
+                        Status::Up(false) => "↑",    // ⬆
+                        Status::Down(false) => "↓",  // ⬇
+                        Status::Left(false) => "←",  // ⬅
+                        Status::Right(false) => "→", // ⮕
+                    };
+                }
+
                 s += if check_row {
                     if c == self.start.0 && r == self.start.1 {
                         "S"
@@ -219,9 +229,12 @@ impl Map {
     }
 
     fn at(&self, loc: Vec2) -> Option<Spot> {
+        println!("loc = {:?}, dim = {:?}", loc, self.dim);
         if loc.0 < self.dim.0 && loc.1 < self.dim.1 {
+            println!("suc");
             return Some(self.map[loc.1][loc.0]);
         }
+        println!("fail");
         None
     }
 
@@ -304,17 +317,16 @@ fn parse_line(reader: &mut BufReader<File>) -> Vec<String> {
 
 fn breadth_first(map: &Map) {
     let mut f = File::create("results/breadth_first_resutls.txt").unwrap();
-
     let mut done = false;
     let mut map = map.clone();
+    let mut q = VecDeque::<(usize, Vec2)>::new();
+    let mut layer_prev = 1;
     let start = map.start;
     let goal = map.goal;
-    let mut q = VecDeque::<(usize, Vec2)>::new();
 
     map.map[start.1][start.0].1 = Status::Path;
     q.push_back((0, start));
 
-    let mut layer_prev = 1;
     while let Some((layer, loc)) = q.pop_front() {
         if layer != layer_prev {
             println!("{:?}", map);
@@ -335,6 +347,7 @@ fn breadth_first(map: &Map) {
         if loc == goal {
             done = true;
             println!("{:?}", map);
+            f.write(map.map_text().as_bytes()).expect("Write failed");
             break;
         }
 
@@ -354,6 +367,7 @@ fn breadth_first(map: &Map) {
             map.at_mut(spot).unwrap().1 = Status::Left(true);
             q.push_back((layer + 1, spot));
         }
+
         layer_prev = layer;
     }
 
@@ -382,22 +396,135 @@ fn breadth_first(map: &Map) {
         f.write("Breadth first search failed! No valid paths exist.".as_bytes())
             .expect("Write failed");
     }
+    f.flush().expect("Couldn't flush to file");
 }
 
-/*
-fn greedy_best_first(map: &Map) {
+fn lowest_cost(map: &Map) {
+    let mut f = File::create("results/lowest_cost_resutls.txt").unwrap();
+    let mut done = false;
     let mut map = map.clone();
+    let mut q = VecDeque::<(usize, Vec2)>::new();
+    let mut layer_prev = 1;
+    let start = map.start;
+    let goal = map.goal;
+    map.costs = vec![vec![u32::MAX; map.dim.1]; map.dim.0];
+    println!("dim = {:?}", map.dim);
+
+    map.map[start.1][start.0].1 = Status::Path;
+    map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
+    q.push_back((0, start));
+
+    while let Some((layer, loc)) = q.pop_front() {
+        if layer != layer_prev {
+            println!("{:?}", map);
+            f.write(map.map_text().as_bytes()).expect("Write failed");
+
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        let tile = &mut map.map[loc.1][loc.0];
+
+        tile.1 = match tile.1 {
+            Status::Up(true) => Status::Up(false),
+            Status::Down(true) => Status::Down(false),
+            Status::Left(true) => Status::Left(false),
+            Status::Right(true) => Status::Right(false),
+            x => x,
+        };
+
+        if loc == goal {
+            done = true;
+        }
+
+        let loc_old = loc;
+        if let Some(loc) = map.up(&loc) {
+            if map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost()
+                < map.costs[loc.1][loc.0]
+            {
+                map.costs[loc.1][loc.0] =
+                    map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost();
+                map.at_mut(loc).unwrap().1 = Status::Down(true);
+            }
+            q.push_back((layer + 1, loc));
+        }
+        if let Some(loc) = map.down(&loc) {
+            if map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost()
+                < map.costs[loc.1][loc.0]
+            {
+                map.costs[loc.1][loc.0] =
+                    map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost();
+                map.at_mut(loc).unwrap().1 = Status::Up(true);
+            }
+            q.push_back((layer + 1, loc));
+        }
+        if let Some(loc) = map.left(&loc) {
+            if map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost()
+                < map.costs[loc.1][loc.0]
+            {
+                map.costs[loc.1][loc.0] =
+                    map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost();
+                map.at_mut(loc).unwrap().1 = Status::Right(true);
+            }
+            q.push_back((layer + 1, loc));
+        }
+        if let Some(loc) = map.right(&loc) {
+            if map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost()
+                < map.costs[loc.1][loc.0]
+            {
+                map.costs[loc.1][loc.0] =
+                    map.costs[loc_old.1][loc_old.0] + map.at(loc).unwrap().0.cost();
+                map.at_mut(loc).unwrap().1 = Status::Left(true);
+            }
+            q.push_back((layer + 1, loc));
+        }
+
+        layer_prev = layer;
+    }
+
+    if done {
+        // Now do backtracking
+        let mut cost = 0;
+        let mut loc_opt = Some(goal);
+        loop {
+            match loc_opt {
+                Some(loc) => {
+                    loc_opt = map.follow(loc);
+                    map.at_mut(loc).unwrap().1 = Status::Path;
+                    cost += map.at(loc).unwrap().0.cost();
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                None => break,
+            }
+        }
+        println!("The lowest cost path was found and costs {}.", cost);
+        f.write(format!("The lowest cost path was found and costs {}.", cost).as_bytes())
+            .expect("Write failed");
+    } else {
+        println!("Lowest cost search failed! No valid paths exist.");
+        f.write("Lowest cost search failed! No valid paths exist.".as_bytes())
+            .expect("Write failed");
+    }
+    f.flush().expect("Couldn't flush to file");
+}
+
+fn greedy_best_first(map: &Map) {
+    // let mut map = map.clone();
 }
 fn a_star_1(map: &Map) {
-    let mut map = map.clone();
+    // let mut map = map.clone();
 }
 fn a_star_2(map: &Map) {
-    let mut map = map.clone();
+    // let mut map = map.clone();
 }
-*/
 
 fn main() {
     let map = Map::from_file_path("map-small.txt");
     println!("The map data has been read successfully: {:?}", map);
-    breadth_first(&map);
+
+    // breadth_first(&map);
+    lowest_cost(&map);
+    // greedy_best_first(&map);
+    // a_star_1(&map);
+    // a_star_2(&map);
 }
