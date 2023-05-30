@@ -6,7 +6,7 @@ use std::{
     vec,
 };
 
-const SLEEPER_TIME: std::time::Duration = std::time::Duration::from_millis(100);
+const SLEEPER_TIME: std::time::Duration = std::time::Duration::from_millis(500);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Terrain {
@@ -168,14 +168,14 @@ impl Map {
 
     fn map_text(&self) -> String {
         let width = self.map.get(0).unwrap().len();
-        let mut s = String::from("▗");
-        s += &String::from_iter(std::iter::repeat("▄▄▄▄").take(width - 1));
-        s += "▄▄▄▖\n▐";
-
-        let divider = "\n▐".to_string()
-            + &String::from_iter(std::iter::repeat("━━━╋").take(width - 1))
-            + "━━━▌\n▐";
-        let divider = &divider;
+        let divider = &format!(
+            "\n▐{}━━━▌\n▐",
+            String::from_iter(std::iter::repeat("━━━╋").take(width - 1))
+        );
+        let mut s = format!(
+            "▗{}▄▄▄▖\n▐",
+            String::from_iter(std::iter::repeat("▄▄▄▄").take(width - 1))
+        );
 
         for (r, row) in self.map.iter().enumerate() {
             let check_row = r == self.start.1 || r == self.goal.1;
@@ -225,20 +225,16 @@ impl Map {
                     s += s_status;
                     s += s_start_goal;
                 }
-                if c == row.len() - 1 {
-                    s += "▌";
-                } else {
-                    s += "┃";
-                }
+                s += if c == row.len() - 1 { "▌" } else { "┃" }
             }
             if r != self.map.len() - 1 {
                 s += divider;
             }
         }
-        // s.truncate(s.len() - divider.len());
-        s += "\n▝"; //┗
-        s += &String::from_iter(std::iter::repeat("▀▀▀▀").take(width - 1));
-        s += "▀▀▀▘\n"; //┛
+        s += &format!(
+            "\n▝{}▀▀▀▘\n",
+            String::from_iter(std::iter::repeat("▀▀▀▀").take(width - 1))
+        );
         s
     }
 
@@ -624,7 +620,7 @@ fn a_star_2(map: &Map) {
 }
 
 fn main() {
-    let map = Map::from_file_path("map.txt");
+    let map = Map::from_file_path("map-small.txt");
     println!("The map data has been read successfully: {:?}", map);
 
     breadth_first(&map);
