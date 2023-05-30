@@ -1,8 +1,11 @@
+use rand::Rng;
 use std::{
     collections::VecDeque,
     fmt::{Display, Formatter, Result},
     io::{self, Write},
 };
+
+const HEIGHT_LIMIT: usize = 10;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -10,9 +13,15 @@ struct Vec2 {
     col: isize,
 }
 
+#[derive(Debug)]
+struct Area {
+    min: Vec2,
+    max: Vec2,
+}
+
 const DIM: Vec2 = Vec2 { row: 6, col: 7 };
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum Spot {
     None,
     O,
@@ -56,12 +65,22 @@ impl<T: Clone + Copy + Default> Grid<T> {
     }
 }
 
+#[derive(Debug)]
+enum CheckDir {
+    N,
+    E,
+    NE,
+    SE,
+}
+
 struct GameBoard {
     grid: Grid<Spot>,
 }
 
 impl GameBoard {
     fn new(dim: &Vec2) -> Self {
+        assert!(dim.row > 3, "Board doesn't have enough rows");
+        assert!(dim.col > 3, "Board doesn't have enough columns");
         Self {
             grid: Grid::<Spot>::new(dim).expect("Invalid board dimensions"),
         }
@@ -76,12 +95,16 @@ impl GameBoard {
                 println!("You won!");
                 return Spot::O;
             }
+            println!("Human's current score: {}", self.score(Spot::O));
+            println!("Bot's current score: {}", self.score(Spot::X));
+
             self.turn_bot();
-            self.check_win();
             if self.check_win() {
                 println!("The bot won!");
                 return Spot::X;
             }
+            println!("Human's current score: {}", self.score(Spot::O));
+            println!("Bot's current score: {}", self.score(Spot::X));
         }
     }
 
@@ -150,24 +173,26 @@ impl GameBoard {
                 }
             }
         };
-        self.place(Spot::O, col);
+        self.drop_piece(Spot::O, col);
         println!("{}", self.as_text());
     }
 
     fn turn_bot(&mut self) {
-        println!("Bot's move: {}", 0);
+        println!("Bot's move: ");
+
+        let col = self.best_move(Spot::X, HEIGHT_LIMIT);
+
+        self.drop_piece(Spot::X, col);
         println!("{}", self.as_text());
     }
 
-    fn place(&mut self, spot: Spot, col: isize) {
+    fn drop_piece(&mut self, spot: Spot, col: isize) {
         assert!(spot != Spot::None, "Cannot place a Spot::None");
         let mut loc = Vec2 {
             row: self.grid.dim.row - 1,
             col,
         };
-        println!("{:?}", loc);
         while self.grid.at(&loc) == Some(Spot::None) {
-            println!("{:?}", loc);
             loc.row -= 1;
         }
         loc.row += 1;
@@ -175,43 +200,203 @@ impl GameBoard {
     }
 
     fn check_win(&self) -> bool {
-        let mut v = Grid::<bool>::new(&self.grid.dim).unwrap();
-        let mut q: VecDeque<Vec2> = VecDeque::new();
-        q.push_back(Vec2 {
-            row: DIM.row - 1,
-            col: 0,
-        });
-        while let Some(loc) = q.pop_front() {
-            *v.at_mut(&loc).unwrap() = true;
+        self.score(Spot::O).abs() > 500
+    }
 
-            let up = Vec2 {
-                row: loc.row + 1,
-                col: loc.col,
-            };
-            let right = Vec2 {
-                row: loc.row,
-                col: loc.col + 1,
-            };
-            if let Some(true) = v.at(&up) {
-                q.push_back(up);
+    fn score(&self, spot: Spot) -> isize {
+        assert!(spot != Spot::None, "Cannont score for Spot::None");
+        self.score_area(
+            Area {
+                min: Vec2 { row: 0, col: 0 },
+                max: Vec2 {
+                    row: self.grid.dim.row - 4,
+                    col: self.grid.dim.col - 1,
+                },
+            },
+            CheckDir::N,
+            spot,
+        ) + self.score_area(
+            Area {
+                min: Vec2 { row: 0, col: 0 },
+                max: Vec2 {
+                    row: self.grid.dim.row - 1,
+                    col: self.grid.dim.col - 4,
+                },
+            },
+            CheckDir::E,
+            spot,
+        ) + self.score_area(
+            Area {
+                min: Vec2 { row: 0, col: 0 },
+                max: Vec2 {
+                    row: self.grid.dim.row - 4,
+                    col: self.grid.dim.col - 4,
+                },
+            },
+            CheckDir::NE,
+            spot,
+        ) + self.score_area(
+            Area {
+                min: Vec2 { row: 3, col: 0 },
+                max: Vec2 {
+                    row: self.grid.dim.row - 1,
+                    col: self.grid.dim.col - 4,
+                },
+            },
+            CheckDir::SE,
+            spot,
+        )
+    }
+
+    fn score_area(&self, area: Area, dir: CheckDir, spot: Spot) -> isize {
+        // println!("Scoring area (area: {:?}, dir: {:?}, spot: {:?}", area, dir, spot);
+        let mut score = 0;
+        let mut row = area.min.row;
+        let mut col = area.min.col;
+
+        while row <= area.max.row {
+            while col <= area.max.col {
+                score += self.score_pos(Vec2 { row, col }, &dir, &spot);
+                col += 1;
             }
-            if let Some(true) = v.at(&right) {
-                q.push_back(right);
+            row += 1;
+        }
+        score
+    }
+
+    fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> isize {
+        // println!("Scoring spot (loc: {:?}, dir: {:?}, spot: {:?}", loc, dir, spot);
+        let row = loc.row as usize;
+        let col = loc.col as usize;
+        let mut line_vec = Vec::<Spot>::new();
+        let line: &[Spot] = match dir {
+            CheckDir::N => {
+                for x in 0..4 {
+                    line_vec.push(
+                        self.grid
+                            .at(&Vec2 {
+                                row: row as isize + x,
+                                col: col as isize,
+                            })
+                            .unwrap(),
+                    );
+                }
+                &line_vec[..]
+            }
+            CheckDir::E => &self.grid.grid[row][col..col + 4],
+            CheckDir::NE => {
+                for x in 0..4 {
+                    line_vec.push(
+                        self.grid
+                            .at(&Vec2 {
+                                row: row as isize + x,
+                                col: col as isize + x,
+                            })
+                            .unwrap(),
+                    );
+                }
+                &line_vec[..]
+            }
+            CheckDir::SE => {
+                for x in 0..4 {
+                    line_vec.push(
+                        self.grid
+                            .at(&Vec2 {
+                                row: row as isize - x,
+                                col: col as isize + x,
+                            })
+                            .unwrap(),
+                    );
+                }
+                &line_vec[..]
+            }
+        };
+        // println!("Line: {:?}", line);
+
+        return if line[0] != Spot::None
+            && line[0] == line[1]
+            && line[1] == line[2]
+            && line[2] == line[3]
+        {
+            // four in a row
+            1000 * if line[0] == *spot { 1 } else { -1 }
+        } else if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] {
+            // three in a row
+            (if line[3] == Spot::None {
+                // (forth spot open)
+                16
+            } else {
+                // (forth spot taken)
+                4
+            }) * if line[0] == *spot { 1 } else { -1 }
+        } else if line[1] != Spot::None && line[1] == line[2] && line[2] == line[3] {
+            // three in a row (mirrored)
+            (if line[3] == Spot::None {
+                100 // (forth spot open)
+            } else {
+                8 // (forth spot taken)
+            }) * if line[1] == *spot { 1 } else { -1 }
+        } else if line[0] != Spot::None && line[0] == line[1] {
+            // two in a row (start)
+            (if line[2] == Spot::None {
+                // (third spot open)
+                if line[3] == Spot::None {
+                    // (fourth spot open)
+                    4
+                } else {
+                    // (fourth spot taken)
+                    2
+                }
+            } else {
+                // (third spot taken)
+                1
+            }) * if line[0] == *spot { 1 } else { -1 }
+        } else if line[1] != Spot::None && line[1] == line[2] {
+            // two in a row (middle)
+            (if line[0] == Spot::None && line[3] == Spot::None {
+                // (both ends open)
+                8
+            } else if line[0] == Spot::None || line[3] == Spot::None {
+                // (one end open)
+                2
+            } else {
+                // (both ends taken)
+                1
+            }) * if line[1] == *spot { 1 } else { -1 }
+        } else if line[2] != Spot::None && line[2] == line[3] {
+            // two in a row (end)
+            (if line[1] == Spot::None {
+                // (third spot open)
+                if line[0] == Spot::None {
+                    // (fourth spot open)
+                    4
+                } else {
+                    // (fourth spot taken)
+                    2
+                }
+            } else {
+                // (third spot taken)
+                1
+            }) * if line[2] == *spot { 1 } else { -1 }
+        } else {
+            // nothing special
+            0
+        };
+    }
+
+    fn best_move(&self, spot: Spot, height: usize) -> isize {
+        // randomly choose column (check that it's available)
+        let mut rng = rand::thread_rng();
+        loop {
+            let x = rng.gen_range(0..7);
+            if self.grid.at(&Vec2 {
+                row: self.grid.dim.row - 1,
+                col: x,
+            }) == Some(Spot::None)
+            {
+                break x;
             }
         }
-        false
-    }
-
-    fn check_win_n(&self, loc: Vec2) -> bool {
-        false
-    }
-
-    fn check_win_ne(&self, loc: Vec2) -> bool {
-        false
-    }
-
-    fn check_win_e(&self, loc: Vec2) -> bool {
-        false
     }
 }
 
