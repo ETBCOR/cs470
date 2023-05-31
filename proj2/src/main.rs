@@ -73,7 +73,7 @@ enum CheckDir {
     SE,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Score {
     None(isize),
     O,
@@ -307,7 +307,7 @@ impl GameBoard {
     }
 
     fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> Score {
-        // println!("Scoring spot (loc: {:?}, dir: {:?}, spot: {:?}", loc, dir, spot);
+        // println!("Scoring position (loc: {:?}, dir: {:?}, spot: {:?}", loc, dir, spot);
         let row = loc.row as usize;
         let col = loc.col as usize;
         let mut line_vec = Vec::<Spot>::new();
@@ -353,80 +353,57 @@ impl GameBoard {
                 &line_vec[..]
             }
         };
-        // println!("Line: {:?}", line);
+        let mut line_vec_rev = Vec::from(line);
+        line_vec_rev.reverse();
+        let line_rev: &[Spot] = &line_vec_rev[..];
+        match (self.score_line(line, spot), self.score_line(line_rev, spot)) {
+            (Score::None(f), Score::None(r)) => Score::None(f + r),
+            (w, Score::None(_)) | (Score::None(_), w) | (w, _) => w,
+        }
+    }
 
-        if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] && line[2] == line[3] {
-            // four in a row
-            if line[0] == Spot::O {
-                return Score::O;
-            } else {
-                return Score::X;
+    fn score_line(&self, line: &[Spot], spot: &Spot) -> Score {
+        match (
+            line[0],
+            line[0] == line[1],
+            line[1],
+            line[1] == line[2],
+            line[2],
+            line[2] == line[3],
+            line[3],
+        ) {
+            // 4 in a row
+            (Spot::O, true, _, true, _, true, _) => Score::O, // O wins
+            (Spot::X, true, _, true, _, true, _) => Score::X, // X wins
+            // 3 in a row, 4th empty
+            (s, true, _, true, _, false, Spot::None) if s != Spot::None => {
+                Score::None(16 * if s == *spot { 1 } else { -1 })
             }
-        } else {
-            return Score::None(
-                if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] {
-                    // three in a row
-                    (if line[3] == Spot::None {
-                        // (forth spot open)
-                        16
-                    } else {
-                        // (forth spot taken)
-                        4
-                    }) * if line[0] == *spot { 1 } else { -1 }
-                } else if line[1] != Spot::None && line[1] == line[2] && line[2] == line[3] {
-                    // three in a row (mirrored)
-                    (if line[3] == Spot::None {
-                        100 // (forth spot open)
-                    } else {
-                        8 // (forth spot taken)
-                    }) * if line[1] == *spot { 1 } else { -1 }
-                } else if line[0] != Spot::None && line[0] == line[1] {
-                    // two in a row (start)
-                    (if line[2] == Spot::None {
-                        // (third spot open)
-                        if line[3] == Spot::None {
-                            // (fourth spot open)
-                            4
-                        } else {
-                            // (fourth spot taken)
-                            2
-                        }
-                    } else {
-                        // (third spot taken)
-                        1
-                    }) * if line[0] == *spot { 1 } else { -1 }
-                } else if line[1] != Spot::None && line[1] == line[2] {
-                    // two in a row (middle)
-                    (if line[0] == Spot::None && line[3] == Spot::None {
-                        // (both ends open)
-                        8
-                    } else if line[0] == Spot::None || line[3] == Spot::None {
-                        // (one end open)
-                        2
-                    } else {
-                        // (both ends taken)
-                        1
-                    }) * if line[1] == *spot { 1 } else { -1 }
-                } else if line[2] != Spot::None && line[2] == line[3] {
-                    // two in a row (end)
-                    (if line[1] == Spot::None {
-                        // (third spot open)
-                        if line[0] == Spot::None {
-                            // (fourth spot open)
-                            4
-                        } else {
-                            // (fourth spot taken)
-                            2
-                        }
-                    } else {
-                        // (third spot taken)
-                        1
-                    }) * if line[2] == *spot { 1 } else { -1 }
-                } else {
-                    // nothing special
-                    0
-                },
-            );
+            // two in a row, two empty spots
+            (s, true, _, _, Spot::None, _, Spot::None) if s != Spot::None => {
+                Score::None(8 * if s == *spot { 1 } else { -1 })
+            }
+            // two in a row, one empty spot, then another of the same piece at the end
+            (s, true, _, _, Spot::None, _, o) if s != Spot::None && s == o => {
+                Score::None(16 * if s == *spot { 1 } else { -1 })
+            }
+            // two in a row, one empty spot, (then an aponent's piece)
+            (s, true, _, _, Spot::None, true, _) if s != Spot::None => {
+                Score::None(4 * if s == *spot { 1 } else { -1 })
+            }
+            // two in a row (middle), empty ends
+            (Spot::None, _, s, true, _, _, Spot::None) if s != Spot::None => {
+                Score::None((8 / 2) * if s == *spot { 1 } else { -1 })
+            }
+            // two in a row (middle), one empty end
+            (l, _, s, true, _, _, r) if s != Spot::None && (l == Spot::None || r == Spot::None) => {
+                Score::None(2 * if s == *spot { 1 } else { -1 })
+            }
+            // 1 spot with lots of space
+            (s, false, _, true, _, true, _) if s != Spot::None => {
+                Score::None(4 * if s == *spot { 1 } else { -1 })
+            }
+            _ => Score::None(0),
         }
     }
 
