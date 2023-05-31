@@ -73,6 +73,13 @@ enum CheckDir {
     SE,
 }
 
+#[derive(PartialEq)]
+enum Score {
+    None(isize),
+    O,
+    X,
+}
+
 struct GameBoard {
     grid: Grid<Spot>,
 }
@@ -91,20 +98,28 @@ impl GameBoard {
 
         loop {
             self.turn_human();
-            if self.check_win() {
-                println!("You won!");
-                return Spot::O;
+            match self.score(Spot::O) {
+                Score::None(s) => {
+                    println!("Human's current score: {}", s);
+                }
+                Score::O => {
+                    println!("You won!");
+                    return Spot::O;
+                }
+                Score::X => unreachable!(),
             }
-            println!("Human's current score: {}", self.score(Spot::O));
-            println!("Bot's current score: {}", self.score(Spot::X));
 
             self.turn_bot();
-            if self.check_win() {
-                println!("The bot won!");
-                return Spot::X;
+            match self.score(Spot::X) {
+                Score::None(s) => {
+                    println!("Bot's current score: {}", s);
+                }
+                Score::X => {
+                    println!("Bot won!");
+                    return Spot::X;
+                }
+                Score::O => unreachable!(),
             }
-            println!("Human's current score: {}", self.score(Spot::O));
-            println!("Bot's current score: {}", self.score(Spot::X));
         }
     }
 
@@ -199,13 +214,11 @@ impl GameBoard {
         *self.grid.at_mut(&loc).unwrap() = spot;
     }
 
-    fn check_win(&self) -> bool {
-        self.score(Spot::O).abs() > 500
-    }
-
-    fn score(&self, spot: Spot) -> isize {
+    fn score(&self, spot: Spot) -> Score {
         assert!(spot != Spot::None, "Cannont score for Spot::None");
-        self.score_area(
+        let mut score = 0;
+
+        let s = self.score_area(
             Area {
                 min: Vec2 { row: 0, col: 0 },
                 max: Vec2 {
@@ -215,7 +228,13 @@ impl GameBoard {
             },
             CheckDir::N,
             spot,
-        ) + self.score_area(
+        );
+        if let Score::None(s) = s {
+            score += s;
+        } else {
+            return s;
+        }
+        let s = self.score_area(
             Area {
                 min: Vec2 { row: 0, col: 0 },
                 max: Vec2 {
@@ -225,7 +244,13 @@ impl GameBoard {
             },
             CheckDir::E,
             spot,
-        ) + self.score_area(
+        );
+        if let Score::None(s) = s {
+            score += s;
+        } else {
+            return s;
+        }
+        let s = self.score_area(
             Area {
                 min: Vec2 { row: 0, col: 0 },
                 max: Vec2 {
@@ -235,7 +260,13 @@ impl GameBoard {
             },
             CheckDir::NE,
             spot,
-        ) + self.score_area(
+        );
+        if let Score::None(s) = s {
+            score += s;
+        } else {
+            return s;
+        }
+        let s = self.score_area(
             Area {
                 min: Vec2 { row: 3, col: 0 },
                 max: Vec2 {
@@ -245,10 +276,16 @@ impl GameBoard {
             },
             CheckDir::SE,
             spot,
-        )
+        );
+        if let Score::None(s) = s {
+            score += s;
+        } else {
+            return s;
+        }
+        Score::None(score)
     }
 
-    fn score_area(&self, area: Area, dir: CheckDir, spot: Spot) -> isize {
+    fn score_area(&self, area: Area, dir: CheckDir, spot: Spot) -> Score {
         // println!("Scoring area (area: {:?}, dir: {:?}, spot: {:?}", area, dir, spot);
         let mut score = 0;
         let mut row = area.min.row;
@@ -256,15 +293,20 @@ impl GameBoard {
 
         while row <= area.max.row {
             while col <= area.max.col {
-                score += self.score_pos(Vec2 { row, col }, &dir, &spot);
+                let s = self.score_pos(Vec2 { row, col }, &dir, &spot);
+                if let Score::None(s) = s {
+                    score += s;
+                } else {
+                    return s;
+                }
                 col += 1;
             }
             row += 1;
         }
-        score
+        Score::None(score)
     }
 
-    fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> isize {
+    fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> Score {
         // println!("Scoring spot (loc: {:?}, dir: {:?}, spot: {:?}", loc, dir, spot);
         let row = loc.row as usize;
         let col = loc.col as usize;
@@ -313,75 +355,79 @@ impl GameBoard {
         };
         // println!("Line: {:?}", line);
 
-        return if line[0] != Spot::None
-            && line[0] == line[1]
-            && line[1] == line[2]
-            && line[2] == line[3]
-        {
+        if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] && line[2] == line[3] {
             // four in a row
-            1000 * if line[0] == *spot { 1 } else { -1 }
-        } else if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] {
-            // three in a row
-            (if line[3] == Spot::None {
-                // (forth spot open)
-                16
+            if line[0] == Spot::O {
+                return Score::O;
             } else {
-                // (forth spot taken)
-                4
-            }) * if line[0] == *spot { 1 } else { -1 }
-        } else if line[1] != Spot::None && line[1] == line[2] && line[2] == line[3] {
-            // three in a row (mirrored)
-            (if line[3] == Spot::None {
-                100 // (forth spot open)
-            } else {
-                8 // (forth spot taken)
-            }) * if line[1] == *spot { 1 } else { -1 }
-        } else if line[0] != Spot::None && line[0] == line[1] {
-            // two in a row (start)
-            (if line[2] == Spot::None {
-                // (third spot open)
-                if line[3] == Spot::None {
-                    // (fourth spot open)
-                    4
-                } else {
-                    // (fourth spot taken)
-                    2
-                }
-            } else {
-                // (third spot taken)
-                1
-            }) * if line[0] == *spot { 1 } else { -1 }
-        } else if line[1] != Spot::None && line[1] == line[2] {
-            // two in a row (middle)
-            (if line[0] == Spot::None && line[3] == Spot::None {
-                // (both ends open)
-                8
-            } else if line[0] == Spot::None || line[3] == Spot::None {
-                // (one end open)
-                2
-            } else {
-                // (both ends taken)
-                1
-            }) * if line[1] == *spot { 1 } else { -1 }
-        } else if line[2] != Spot::None && line[2] == line[3] {
-            // two in a row (end)
-            (if line[1] == Spot::None {
-                // (third spot open)
-                if line[0] == Spot::None {
-                    // (fourth spot open)
-                    4
-                } else {
-                    // (fourth spot taken)
-                    2
-                }
-            } else {
-                // (third spot taken)
-                1
-            }) * if line[2] == *spot { 1 } else { -1 }
+                return Score::X;
+            }
         } else {
-            // nothing special
-            0
-        };
+            return Score::None(
+                if line[0] != Spot::None && line[0] == line[1] && line[1] == line[2] {
+                    // three in a row
+                    (if line[3] == Spot::None {
+                        // (forth spot open)
+                        16
+                    } else {
+                        // (forth spot taken)
+                        4
+                    }) * if line[0] == *spot { 1 } else { -1 }
+                } else if line[1] != Spot::None && line[1] == line[2] && line[2] == line[3] {
+                    // three in a row (mirrored)
+                    (if line[3] == Spot::None {
+                        100 // (forth spot open)
+                    } else {
+                        8 // (forth spot taken)
+                    }) * if line[1] == *spot { 1 } else { -1 }
+                } else if line[0] != Spot::None && line[0] == line[1] {
+                    // two in a row (start)
+                    (if line[2] == Spot::None {
+                        // (third spot open)
+                        if line[3] == Spot::None {
+                            // (fourth spot open)
+                            4
+                        } else {
+                            // (fourth spot taken)
+                            2
+                        }
+                    } else {
+                        // (third spot taken)
+                        1
+                    }) * if line[0] == *spot { 1 } else { -1 }
+                } else if line[1] != Spot::None && line[1] == line[2] {
+                    // two in a row (middle)
+                    (if line[0] == Spot::None && line[3] == Spot::None {
+                        // (both ends open)
+                        8
+                    } else if line[0] == Spot::None || line[3] == Spot::None {
+                        // (one end open)
+                        2
+                    } else {
+                        // (both ends taken)
+                        1
+                    }) * if line[1] == *spot { 1 } else { -1 }
+                } else if line[2] != Spot::None && line[2] == line[3] {
+                    // two in a row (end)
+                    (if line[1] == Spot::None {
+                        // (third spot open)
+                        if line[0] == Spot::None {
+                            // (fourth spot open)
+                            4
+                        } else {
+                            // (fourth spot taken)
+                            2
+                        }
+                    } else {
+                        // (third spot taken)
+                        1
+                    }) * if line[2] == *spot { 1 } else { -1 }
+                } else {
+                    // nothing special
+                    0
+                },
+            );
+        }
     }
 
     fn best_move(&self, spot: Spot, height: usize) -> isize {
