@@ -94,9 +94,11 @@ impl GameBoard {
 
     fn play(&mut self) -> Spot {
         println!("Starting a game of connect 4!\n{}", self.as_text());
-
-        loop {
+        let max_moves = self.grid.dim.row * self.grid.dim.col;
+        let mut moves = 0;
+        while moves < max_moves {
             self.turn_human();
+            moves += 1;
             match self.score(Spot::O) {
                 Score::None(s) => {
                     println!("Human's current score: {}", s);
@@ -107,7 +109,12 @@ impl GameBoard {
                 Score::X => unreachable!(),
             }
 
+            if moves >= max_moves {
+                break;
+            }
+
             self.turn_bot();
+            moves += 1;
             match self.score(Spot::X) {
                 Score::None(s) => {
                     println!("Bot's current score: {}", s);
@@ -118,6 +125,7 @@ impl GameBoard {
                 Score::O => unreachable!(),
             }
         }
+        Spot::None
     }
 
     fn as_text(&self) -> String {
@@ -152,19 +160,22 @@ impl GameBoard {
 
     fn turn_human(&mut self) {
         let col: isize = 'input: loop {
-            print!("Your move (1-7 then ⏎): ");
+            print!("Your move (1-{} then ⏎): ", self.grid.dim.col);
             io::stdout().flush().expect("Couldn't flush stdout");
             let mut s = String::new();
             io::stdin().read_line(&mut s).expect("Read error");
             let vec: Vec<&str> = s.trim().split_whitespace().collect();
             if vec.len() != 1 {
-                println!("Wrong number of inputs. Please input a single number (1-7).");
+                println!("Wrong number of inputs. Please input a single number.");
                 continue;
             }
             match vec[0].parse::<isize>() {
                 Ok(x) => {
                     if x <= 0 || x > DIM.col {
-                        println!("Input is out of bounds. Please input a single number (1-7).");
+                        println!(
+                            "Input is out of bounds. Please input a single number (1-{}).",
+                            self.grid.dim.col
+                        );
                         continue;
                     } else if self.grid.at(&Vec2 {
                         row: self.grid.dim.row - 1,
@@ -172,7 +183,9 @@ impl GameBoard {
                     }) != Some(Spot::None)
                     {
                         println!(
-                            "No space to play in column {x}. Please input a different number (1-7)."
+                            "No space to play in column {}. Please input a different number (1-{}).",
+                            x,
+                            self.grid.dim.col
                         );
                         continue;
                     } else {
@@ -180,7 +193,7 @@ impl GameBoard {
                     }
                 }
                 Err(_) => {
-                    println!("Error parsing input. Please input a single number (1-7).");
+                    println!("Error parsing input. Please input a number.");
                     continue;
                 }
             }
@@ -198,7 +211,7 @@ impl GameBoard {
         println!("{}", self.as_text());
     }
 
-    fn drop_piece(&mut self, spot: Spot, col: isize) {
+    fn drop_piece(&mut self, spot: Spot, col: isize) -> bool {
         assert!(spot != Spot::None, "Cannot place a Spot::None");
         let mut loc = Vec2 {
             row: self.grid.dim.row - 1,
@@ -208,7 +221,11 @@ impl GameBoard {
             loc.row -= 1;
         }
         loc.row += 1;
-        *self.grid.at_mut(&loc).unwrap() = spot;
+        if let Some(x) = self.grid.at_mut(&loc) {
+            *x = spot;
+            return true;
+        }
+        false
     }
 
     fn score(&self, spot: Spot) -> Score {
@@ -493,7 +510,7 @@ fn scoring_tests() {
     board.drop_piece(spot, 3); // O _ _ O
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
 
-    board = GameBoard::new(&DIM);
+    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     board.drop_piece(spot, 0); // O _ _ _
     board.drop_piece(Spot::X, 3); // O _ _ X
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
