@@ -103,7 +103,6 @@ impl GameBoard {
                     println!("Human's current score: {}", s);
                 }
                 Score::O => {
-                    println!("You won!");
                     return Spot::O;
                 }
                 Score::X => unreachable!(),
@@ -115,7 +114,6 @@ impl GameBoard {
                     println!("Bot's current score: {}", s);
                 }
                 Score::X => {
-                    println!("Bot won!");
                     return Spot::X;
                 }
                 Score::O => unreachable!(),
@@ -446,7 +444,11 @@ impl Display for GameBoard {
 
 fn main() {
     let mut board = GameBoard::new(&DIM);
-    _ = board.play();
+    match board.play() {
+        Spot::None => println!("Draw!"),
+        Spot::O => println!("You won!"),
+        Spot::X => println!("Bot won!"),
+    }
 }
 
 #[test]
