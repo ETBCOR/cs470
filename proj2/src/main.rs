@@ -1,6 +1,5 @@
 use rand::Rng;
 use std::{
-    collections::VecDeque,
     fmt::{Display, Formatter, Result},
     io::{self, Write},
 };
@@ -418,7 +417,7 @@ impl GameBoard {
         }
     }
 
-    fn best_move(&self, spot: Spot, height: usize) -> isize {
+    fn best_move(&self, _spot: Spot, _height: usize) -> isize {
         // randomly choose column (check that it's available)
         let mut rng = rand::thread_rng();
         loop {
