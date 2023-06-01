@@ -408,7 +408,6 @@ impl GameBoard {
             }
             // 1 spot next to 2 free, then ally piece
             (s, _, Spot::None, _, Spot::None, _, o) if s != Spot::None && s == o => {
-                println!("toki!");
                 Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 2 free
