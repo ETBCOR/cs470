@@ -373,35 +373,49 @@ impl GameBoard {
             line[3],
         ) {
             // 4 in a row
-            (Spot::O, true, _, true, _, true, _) => Score::O, // O wins
-            (Spot::X, true, _, true, _, true, _) => Score::X, // X wins
+            (Spot::O, _, Spot::O, _, Spot::O, _, Spot::O) => Score::O, // O wins
+            (Spot::X, _, Spot::X, _, Spot::X, _, Spot::X) => Score::X, // X wins
             // 3 in a row, 4th empty
-            (s, true, _, true, _, false, Spot::None) if s != Spot::None => {
+            (s, true, _, true, _, _, Spot::None) if s != Spot::None => {
                 Score::None(16 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, two empty spots
             (s, true, _, _, Spot::None, _, Spot::None) if s != Spot::None => {
                 Score::None(8 * if s == *spot { 1 } else { -1 })
             }
-            // two in a row, one empty spot, then another of the same piece at the end
+            // two in a row, one empty spot, then an ally piece
             (s, true, _, _, Spot::None, _, o) if s != Spot::None && s == o => {
                 Score::None(16 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, one empty spot, (then an aponent's piece)
-            (s, true, _, _, Spot::None, true, _) if s != Spot::None => {
+            (s, true, _, _, Spot::None, _, o) if s != Spot::None && s != o => {
                 Score::None(4 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), empty ends
             (Spot::None, _, s, true, _, _, Spot::None) if s != Spot::None => {
-                Score::None((8 / 2) * if s == *spot { 1 } else { -1 })
+                Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), one empty end
-            (l, _, s, true, _, _, r) if s != Spot::None && (l == Spot::None || r == Spot::None) => {
+            (l, _, s, true, _, _, r)
+                if s != Spot::None
+                    && (l == Spot::None || r == Spot::None)
+                    && (s != l)
+                    && (s != r) =>
+            {
                 Score::None(2 * if s == *spot { 1 } else { -1 })
             }
-            // 1 spot with lots of space
-            (s, false, _, true, _, true, _) if s != Spot::None => {
+            // 1 spot next to 3 free
+            (s, _, Spot::None, _, Spot::None, _, Spot::None) if s != Spot::None => {
                 Score::None(4 * if s == *spot { 1 } else { -1 })
+            }
+            // 1 spot next to 2 free, then ally piece
+            (s, _, Spot::None, _, Spot::None, _, o) if s != Spot::None && s == o => {
+                println!("toki!");
+                Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
+            }
+            // 1 spot next to 2 free
+            (s, _, Spot::None, _, Spot::None, _, _) if s != Spot::None => {
+                Score::None(2 * if s == *spot { 1 } else { -1 })
             }
             _ => Score::None(0),
         }
@@ -433,4 +447,54 @@ impl Display for GameBoard {
 fn main() {
     let mut board = GameBoard::new(&DIM);
     _ = board.play();
+}
+
+#[test]
+fn scoring_tests() {
+    let mut board = GameBoard::new(&DIM);
+    let loc = Vec2 { row: 0, col: 0 };
+    let dir = &CheckDir::E;
+    let spot = Spot::O;
+
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
+    board.drop_piece(spot, 0); // O _ _ _
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
+    board.drop_piece(spot, 1); // O O _ _
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
+    board.drop_piece(spot, 2); // O O O _
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(16));
+    board.drop_piece(spot, 3); // O O O O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
+
+    board = GameBoard::new(&DIM);
+    board.drop_piece(spot, 3); // _ _ _ O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
+    board.drop_piece(spot, 2); // _ _ O O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
+    board.drop_piece(spot, 1); // _ O O O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(16));
+    board.drop_piece(spot, 0); // O O O O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
+
+    board = GameBoard::new(&DIM);
+    board.drop_piece(spot, 0); // O _ _ _
+    board.drop_piece(spot, 1); // O O _ _
+    board.drop_piece(Spot::X, 2); // O O X _
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
+
+    board = GameBoard::new(&DIM);
+    board.drop_piece(spot, 0); // O _ _ _
+    board.drop_piece(spot, 1); // O O _ _
+    board.drop_piece(Spot::X, 3); // O O _ X
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
+
+    board = GameBoard::new(&DIM);
+    board.drop_piece(spot, 0); // O _ _ _
+    board.drop_piece(spot, 3); // O _ _ O
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
+
+    board = GameBoard::new(&DIM);
+    board.drop_piece(spot, 0); // O _ _ _
+    board.drop_piece(Spot::X, 3); // O _ _ X
+    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
 }
