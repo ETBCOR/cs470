@@ -287,9 +287,9 @@ impl GameBoard {
         // println!("Scoring area (area: {:?}, dir: {:?}, spot: {:?}", area, dir, spot);
         let mut score = 0;
         let mut row = area.min.row;
-        let mut col = area.min.col;
 
         while row <= area.max.row {
+            let mut col = area.min.col;
             while col <= area.max.col {
                 let s = self.score_pos(Vec2 { row, col }, &dir, &spot);
                 if let Score::None(s) = s {
