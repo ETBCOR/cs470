@@ -468,7 +468,7 @@ fn main() {
 
 #[test]
 fn scoring_tests() {
-    let mut board = GameBoard::new(&DIM);
+    let mut board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     let loc = Vec2 { row: 0, col: 0 };
     let dir = &CheckDir::E;
     let spot = Spot::O;
@@ -483,7 +483,7 @@ fn scoring_tests() {
     board.drop_piece(spot, 3); // O O O O
     assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
 
-    board = GameBoard::new(&DIM);
+    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     board.drop_piece(spot, 3); // _ _ _ O
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
     board.drop_piece(spot, 2); // _ _ O O
@@ -493,19 +493,19 @@ fn scoring_tests() {
     board.drop_piece(spot, 0); // O O O O
     assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
 
-    board = GameBoard::new(&DIM);
+    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     board.drop_piece(spot, 0); // O _ _ _
     board.drop_piece(spot, 1); // O O _ _
     board.drop_piece(Spot::X, 2); // O O X _
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
 
-    board = GameBoard::new(&DIM);
+    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     board.drop_piece(spot, 0); // O _ _ _
     board.drop_piece(spot, 1); // O O _ _
     board.drop_piece(Spot::X, 3); // O O _ X
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
 
-    board = GameBoard::new(&DIM);
+    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     board.drop_piece(spot, 0); // O _ _ _
     board.drop_piece(spot, 3); // O _ _ O
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
