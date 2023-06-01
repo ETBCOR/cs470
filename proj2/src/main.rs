@@ -1,6 +1,6 @@
 use rand::Rng;
 use std::{
-    fmt::{Display, Formatter, Result},
+    fmt::{Debug, Display, Formatter, Result},
     io::{self, Write},
 };
 
@@ -33,6 +33,7 @@ impl Default for Spot {
     }
 }
 
+#[derive(Clone)]
 struct Grid<T: Clone + Copy + Default> {
     dim: Vec2,
     grid: Vec<Vec<T>>,
@@ -79,6 +80,9 @@ enum Score {
     X,
 }
 
+type Moves = Vec<(isize, Box<GameBoard>, Score)>;
+
+#[derive(Clone)]
 struct GameBoard {
     grid: Grid<Spot>,
 }
@@ -205,7 +209,8 @@ impl GameBoard {
     fn turn_bot(&mut self) {
         println!("Bot's move: ");
 
-        let col = self.best_move(Spot::X, HEIGHT_LIMIT);
+        let col = self._best_move_rnd();
+        // let col = self._best_move(Spot::X, HEIGHT_LIMIT);
 
         self.drop_piece(Spot::X, col);
         println!("{}", self.as_text());
@@ -226,6 +231,15 @@ impl GameBoard {
             return true;
         }
         false
+    }
+
+    fn drop_piece_new_board(&self, spot: Spot, col: isize) -> Option<Box<GameBoard>> {
+        let mut gb = Box::new(self.clone());
+        if gb.drop_piece(spot, col) {
+            Some(gb)
+        } else {
+            None
+        }
     }
 
     fn score(&self, spot: Spot) -> Score {
@@ -434,7 +448,7 @@ impl GameBoard {
         }
     }
 
-    fn best_move(&self, _spot: Spot, _height: usize) -> isize {
+    fn _best_move_rnd(&self) -> isize {
         // randomly choose column (check that it's available)
         let mut rng = rand::thread_rng();
         loop {
@@ -447,6 +461,28 @@ impl GameBoard {
                 break x;
             }
         }
+    }
+
+    fn _best_move(&self, spot: Spot, _height: usize) -> isize {
+        let mut moves: Moves = vec![];
+        for col in 0..self.grid.dim.col {
+            match self.drop_piece_new_board(spot, col) {
+                Some(new_board) => {
+                    let score = new_board.score(spot);
+                    moves.push((col, new_board, score));
+                }
+                None => (),
+            }
+        }
+        println!("Moves vec: {:#?}", moves);
+        0
+    }
+}
+
+impl Debug for GameBoard {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = self.as_text();
+        write!(f, "{s}")
     }
 }
 
