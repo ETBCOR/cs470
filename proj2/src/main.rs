@@ -4,7 +4,7 @@ use std::{
     io::{self, Write},
 };
 
-const HEIGHT_LIMIT: usize = 1;
+const HEIGHT_LIMIT: usize = 4;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -142,11 +142,11 @@ impl GameBoard {
     fn as_text(&self) -> String {
         let divider = &format!(
             "\n▐{}━━━▌\n▐",
-            String::from_iter(std::iter::repeat("━━━╋").take(DIM.col as usize - 1))
+            String::from_iter(std::iter::repeat("━━━╋").take(self.grid.dim.col as usize - 1))
         );
         let mut s = format!(
-            "▗{}▄▄▄▖\n▐",
-            String::from_iter(std::iter::repeat("▄▄▄▄").take(DIM.col as usize - 1))
+            "\n▗{}▄▄▄▖\n▐",
+            String::from_iter(std::iter::repeat("▄▄▄▄").take(self.grid.dim.col as usize - 1))
         );
 
         for (r, row) in self.grid.grid.iter().rev().enumerate() {
@@ -158,13 +158,13 @@ impl GameBoard {
                 };
                 s += if c == row.len() - 1 { "▌" } else { "┃" }
             }
-            if r != DIM.row as usize - 1 {
+            if r != self.grid.dim.row as usize - 1 {
                 s += divider;
             }
         }
         s += &format!(
             "\n▝{}▀▀▀▘\n",
-            String::from_iter(std::iter::repeat("▀▀▀▀").take(DIM.col as usize - 1))
+            String::from_iter(std::iter::repeat("▀▀▀▀").take(self.grid.dim.col as usize - 1))
         );
         s
     }
@@ -474,26 +474,65 @@ impl GameBoard {
     }
 
     fn best_move(&self, spot: Spot, height: usize) -> Option<Move> {
+        assert!(
+            spot != Spot::Empty,
+            "Cannont evaluate the best score relative to Spot::Empty"
+        );
+        // println!("[best_move] running at height {height} for spot {:?}", spot);
         let mut moves: Moves = vec![];
         for col in 0..self.grid.dim.col {
             if let Some(new_board) = self.drop_piece_new_board(spot, col) {
                 // piece drop successful
-                let score = match new_board.score(spot) {
+                let score: isize = match new_board.score(spot) {
                     Score::O => {
                         if spot == Spot::O {
-                            256
+                            2048
                         } else {
-                            -256
+                            -2048
                         }
                     }
                     Score::X => {
                         if spot == Spot::X {
-                            256
+                            2048
                         } else {
-                            -256
+                            -2048
                         }
                     }
-                    Score::None(s) => s,
+                    Score::None(s) => {
+                        if height == 0 {
+                            s
+                        } else {
+                            // recurse
+                            if let Some(m) = new_board.best_move(
+                                if spot == Spot::O { Spot::X } else { Spot::O },
+                                height - 1,
+                            ) {
+                                match m
+                                    .board
+                                    .score(if spot == Spot::O { Spot::X } else { Spot::O })
+                                {
+                                    Score::O => {
+                                        if spot == Spot::O {
+                                            2048
+                                        } else {
+                                            println!("warning: human will win next move!");
+                                            -2048
+                                        }
+                                    }
+                                    Score::X => {
+                                        if spot == Spot::X {
+                                            2048
+                                        } else {
+                                            -2048
+                                        }
+                                    }
+                                    Score::None(ss) => ss,
+                                }
+                            } else {
+                                s
+                            }
+                        }
+                    }
                 };
                 moves.push(Move {
                     col,
@@ -502,9 +541,9 @@ impl GameBoard {
                 });
             }
         }
-        println!("Moves vec: {:#?}", moves);
+        // println!("Moves vec: {:#?}", moves);
         match moves.iter().max_by_key(|x| x.score) {
-            Some(m) => dbg!(Some(m.clone())),
+            Some(m) => Some(m.clone()),
             None => None,
         }
     }
@@ -526,6 +565,7 @@ impl Display for GameBoard {
 
 fn main() {
     let mut board = GameBoard::new(&DIM);
+    // let mut board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     match board.play() {
         Spot::Empty => println!("Draw!"),
         Spot::O => println!("You won!"),
