@@ -4,7 +4,7 @@ use std::{
     io::{self, Write},
 };
 
-const HEIGHT_LIMIT: usize = 10;
+const HEIGHT_LIMIT: usize = 1;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -22,14 +22,14 @@ const DIM: Vec2 = Vec2 { row: 6, col: 7 };
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Spot {
-    None,
+    Empty,
     O,
     X,
 }
 
 impl Default for Spot {
     fn default() -> Self {
-        Self::None
+        Self::Empty
     }
 }
 
@@ -80,7 +80,14 @@ enum Score {
     X,
 }
 
-type Moves = Vec<(isize, Box<GameBoard>, Score)>;
+#[derive(Clone, Debug)]
+struct Move {
+    col: isize,
+    board: Box<GameBoard>,
+    score: isize,
+}
+
+type Moves = Vec<Move>;
 
 #[derive(Clone)]
 struct GameBoard {
@@ -129,7 +136,7 @@ impl GameBoard {
                 Score::O => unreachable!(),
             }
         }
-        Spot::None
+        Spot::Empty
     }
 
     fn as_text(&self) -> String {
@@ -145,7 +152,7 @@ impl GameBoard {
         for (r, row) in self.grid.grid.iter().rev().enumerate() {
             for (c, spot) in row.iter().enumerate() {
                 s += match spot {
-                    Spot::None => "   ",
+                    Spot::Empty => "   ",
                     Spot::O => " O ",
                     Spot::X => " X ",
                 };
@@ -184,7 +191,7 @@ impl GameBoard {
                     } else if self.grid.at(&Vec2 {
                         row: self.grid.dim.row - 1,
                         col: x - 1,
-                    }) != Some(Spot::None)
+                    }) != Some(Spot::Empty)
                     {
                         println!(
                             "No space to play in column {}. Please input a different number (1-{}).",
@@ -209,20 +216,23 @@ impl GameBoard {
     fn turn_bot(&mut self) {
         println!("Bot's move: ");
 
-        let col = self._best_move_rnd();
-        // let col = self._best_move(Spot::X, HEIGHT_LIMIT);
+        // let col = self._best_move_rnd();
+        let col = self
+            .best_move(Spot::X, HEIGHT_LIMIT)
+            .expect("The bot has no valid positions to play!")
+            .col;
 
         self.drop_piece(Spot::X, col);
         println!("{}", self.as_text());
     }
 
     fn drop_piece(&mut self, spot: Spot, col: isize) -> bool {
-        assert!(spot != Spot::None, "Cannot place a Spot::None");
+        assert!(spot != Spot::Empty, "Cannot place a Spot::None");
         let mut loc = Vec2 {
             row: self.grid.dim.row - 1,
             col,
         };
-        while self.grid.at(&loc) == Some(Spot::None) {
+        while self.grid.at(&loc) == Some(Spot::Empty) {
             loc.row -= 1;
         }
         loc.row += 1;
@@ -243,7 +253,7 @@ impl GameBoard {
     }
 
     fn score(&self, spot: Spot) -> Score {
-        assert!(spot != Spot::None, "Cannont score for Spot::None");
+        assert!(spot != Spot::Empty, "Cannont score for Spot::None");
         let mut score = 0;
 
         let s = self.score_area(
@@ -404,44 +414,44 @@ impl GameBoard {
             (Spot::O, _, Spot::O, _, Spot::O, _, Spot::O) => Score::O, // O wins
             (Spot::X, _, Spot::X, _, Spot::X, _, Spot::X) => Score::X, // X wins
             // 3 in a row, 4th empty
-            (s, true, _, true, _, _, Spot::None) if s != Spot::None => {
+            (s, true, _, true, _, _, Spot::Empty) if s != Spot::Empty => {
                 Score::None(16 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, two empty spots
-            (s, true, _, _, Spot::None, _, Spot::None) if s != Spot::None => {
+            (s, true, _, _, Spot::Empty, _, Spot::Empty) if s != Spot::Empty => {
                 Score::None(8 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, one empty spot, then an ally piece
-            (s, true, _, _, Spot::None, _, o) if s != Spot::None && s == o => {
+            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s == o => {
                 Score::None(16 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, one empty spot, (then an aponent's piece)
-            (s, true, _, _, Spot::None, _, o) if s != Spot::None && s != o => {
+            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s != o => {
                 Score::None(4 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), empty ends
-            (Spot::None, _, s, true, _, _, Spot::None) if s != Spot::None => {
+            (Spot::Empty, _, s, true, _, _, Spot::Empty) if s != Spot::Empty => {
                 Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), one empty end
             (l, _, s, true, _, _, r)
-                if s != Spot::None
-                    && (l == Spot::None || r == Spot::None)
+                if s != Spot::Empty
+                    && (l == Spot::Empty || r == Spot::Empty)
                     && (s != l)
                     && (s != r) =>
             {
                 Score::None(2 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 3 free
-            (s, _, Spot::None, _, Spot::None, _, Spot::None) if s != Spot::None => {
+            (s, _, Spot::Empty, _, Spot::Empty, _, Spot::Empty) if s != Spot::Empty => {
                 Score::None(4 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 2 free, then ally piece
-            (s, _, Spot::None, _, Spot::None, _, o) if s != Spot::None && s == o => {
+            (s, _, Spot::Empty, _, Spot::Empty, _, o) if s != Spot::Empty && s == o => {
                 Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 2 free
-            (s, _, Spot::None, _, Spot::None, _, _) if s != Spot::None => {
+            (s, _, Spot::Empty, _, Spot::Empty, _, _) if s != Spot::Empty => {
                 Score::None(2 * if s == *spot { 1 } else { -1 })
             }
             _ => Score::None(0),
@@ -456,26 +466,47 @@ impl GameBoard {
             if self.grid.at(&Vec2 {
                 row: self.grid.dim.row - 1,
                 col: x,
-            }) == Some(Spot::None)
+            }) == Some(Spot::Empty)
             {
                 break x;
             }
         }
     }
 
-    fn _best_move(&self, spot: Spot, _height: usize) -> isize {
+    fn best_move(&self, spot: Spot, height: usize) -> Option<Move> {
         let mut moves: Moves = vec![];
         for col in 0..self.grid.dim.col {
-            match self.drop_piece_new_board(spot, col) {
-                Some(new_board) => {
-                    let score = new_board.score(spot);
-                    moves.push((col, new_board, score));
-                }
-                None => (),
+            if let Some(new_board) = self.drop_piece_new_board(spot, col) {
+                // piece drop successful
+                let score = match new_board.score(spot) {
+                    Score::O => {
+                        if spot == Spot::O {
+                            256
+                        } else {
+                            -256
+                        }
+                    }
+                    Score::X => {
+                        if spot == Spot::X {
+                            256
+                        } else {
+                            -256
+                        }
+                    }
+                    Score::None(s) => s,
+                };
+                moves.push(Move {
+                    col,
+                    board: new_board,
+                    score,
+                });
             }
         }
         println!("Moves vec: {:#?}", moves);
-        0
+        match moves.iter().max_by_key(|x| x.score) {
+            Some(m) => dbg!(Some(m.clone())),
+            None => None,
+        }
     }
 }
 
@@ -496,7 +527,7 @@ impl Display for GameBoard {
 fn main() {
     let mut board = GameBoard::new(&DIM);
     match board.play() {
-        Spot::None => println!("Draw!"),
+        Spot::Empty => println!("Draw!"),
         Spot::O => println!("You won!"),
         Spot::X => println!("Bot won!"),
     }
@@ -550,4 +581,11 @@ fn scoring_tests() {
     board.drop_piece(spot, 0); // O _ _ _
     board.drop_piece(Spot::X, 3); // O _ _ X
     assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
+
+    board = GameBoard::new(&Vec2 {
+        row: DIM.row,
+        col: DIM.col,
+    });
+    board.drop_piece(Spot::X, DIM.col - 1); // _ _ _ _ _ _ X
+    assert_eq!(board.score(spot), Score::None(-12));
 }
