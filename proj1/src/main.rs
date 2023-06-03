@@ -59,7 +59,7 @@ enum Status {
 type Spot = (Terrain, Status);
 type Vec2 = (usize, usize);
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 struct Visit {
     step: usize,
     loc: Vec2,
@@ -385,7 +385,7 @@ impl Display for Map {
 
 fn breadth_first(map: &Map) {
     println!("Running breadth first search.");
-    let mut f = File::create("results/breadth_first_resutls.txt").unwrap();
+    let mut f = File::create("results/breadth_first_results.txt").unwrap();
     let mut done = false;
     let mut map = map.clone();
     let mut q = VecDeque::<(usize, Vec2)>::new();
@@ -488,12 +488,12 @@ fn breadth_first(map: &Map) {
     f.flush().expect("Couldn't flush to file");
 }
 
-fn lowest_cost(map: &Map) {
+fn lowest_cost_path(map: &Map) {
     println!("Running lowest cost search.");
-    let mut f = File::create("results/lowest_cost_resutls.txt").unwrap();
+    let mut f = File::create("results/lowest_cost_results.txt").unwrap();
     let mut done = false;
     let mut map = map.clone();
-    let mut q = VecDeque::<Visit>::new();
+    let mut q = PriorityQueue::<Visit, usize>::new();
     let start = map.start;
     let goal = map.goal;
 
@@ -501,19 +501,16 @@ fn lowest_cost(map: &Map) {
     map.display_costs = true;
     map.map[start.1][start.0].1 = Status::Path;
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
-    q.push_back(Visit::new(0, start, map.costs[start.1][start.0]));
+    q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut step_prev = 1;
     let mut pops = 0;
-    while let Some(v) = q.pop_front() {
+    while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
-        if step != step_prev {
-            println!("{:?}", map);
-            f.write(map.map_text().as_bytes()).expect("Write failed");
+        println!("{:?}", map);
+        f.write(map.map_text().as_bytes()).expect("Write failed");
 
-            std::thread::sleep(SLEEPER_TIME);
-        }
+        std::thread::sleep(SLEEPER_TIME);
 
         let tile = &mut map.map[loc.1][loc.0];
         tile.1 = match tile.1 {
@@ -526,60 +523,55 @@ fn lowest_cost(map: &Map) {
 
         if loc == goal {
             done = true;
+            break;
         }
 
-        // For each valid neighbor, check if it would have been better to come from here.
+        // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        if let Some(loc_new) = map.get_up(&loc) {
+        if let Some(loc_new) = map.go_up(&loc) {
             let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
             if maybe_cost < map.costs[loc_new.1][loc_new.0] {
                 map.costs[loc_new.1][loc_new.0] = maybe_cost;
                 map.at_mut(loc_new).unwrap().1 = Status::Down(true);
-                q.push_back(Visit::new(
-                    step + 1,
-                    loc_new,
-                    map.costs[loc_new.1][loc_new.0],
-                ));
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - maybe_cost,
+                );
             }
         }
-        if let Some(loc_new) = map.get_down(&loc) {
+        if let Some(loc_new) = map.go_down(&loc) {
             let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
             if maybe_cost < map.costs[loc_new.1][loc_new.0] {
                 map.costs[loc_new.1][loc_new.0] = maybe_cost;
                 map.at_mut(loc_new).unwrap().1 = Status::Up(true);
-                q.push_back(Visit::new(
-                    step + 1,
-                    loc_new,
-                    map.costs[loc_new.1][loc_new.0],
-                ));
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - maybe_cost,
+                );
             }
         }
-        if let Some(loc_new) = map.get_left(&loc) {
+        if let Some(loc_new) = map.go_left(&loc) {
             let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
             if maybe_cost < map.costs[loc_new.1][loc_new.0] {
                 map.costs[loc_new.1][loc_new.0] = maybe_cost;
                 map.at_mut(loc_new).unwrap().1 = Status::Right(true);
-                q.push_back(Visit::new(
-                    step + 1,
-                    loc_new,
-                    map.costs[loc_new.1][loc_new.0],
-                ));
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - maybe_cost,
+                );
             }
         }
-        if let Some(loc_new) = map.get_right(&loc) {
+        if let Some(loc_new) = map.go_right(&loc) {
             let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
             if maybe_cost < map.costs[loc_new.1][loc_new.0] {
                 map.costs[loc_new.1][loc_new.0] = maybe_cost;
                 map.at_mut(loc_new).unwrap().1 = Status::Left(true);
-                q.push_back(Visit::new(
-                    step + 1,
-                    loc_new,
-                    map.costs[loc_new.1][loc_new.0],
-                ));
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - maybe_cost,
+                );
             }
         }
-
-        step_prev = step;
     }
 
     if done {
@@ -634,7 +626,7 @@ fn dist(a: Vec2, b: Vec2, mode: DistMode) -> usize {
 
 fn greedy_best_first(map: &Map) {
     println!("Running greedy best first search.");
-    let mut f = File::create("results/greedy_best_first_resutls.txt").unwrap();
+    let mut f = File::create("results/greedy_best_first_results.txt").unwrap();
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
@@ -647,16 +639,13 @@ fn greedy_best_first(map: &Map) {
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut step_prev = 1;
     let mut pops = 0;
     while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
-        // if step != step_prev {
         println!("{:?}", map);
         f.write(map.map_text().as_bytes()).expect("Write failed");
         std::thread::sleep(SLEEPER_TIME);
-        // }
 
         let tile = &mut map.map[loc.1][loc.0];
         tile.1 = match tile.1 {
@@ -682,8 +671,8 @@ fn greedy_best_first(map: &Map) {
             break;
         }
 
-        // For each untraversed valid neighbor,
-        //
+        // For each untraversed valid neighbor, update its cost and direction,
+        // and add it to the priority queue (priority based on TaxiCab dist to goal).
         if let Some(loc_new) = map.go_up(&loc) {
             map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
             map.at_mut(loc_new).unwrap().1 = Status::Down(true);
@@ -716,8 +705,6 @@ fn greedy_best_first(map: &Map) {
                 usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
             );
         }
-
-        step_prev = step;
     }
 
     if done {
@@ -761,14 +748,144 @@ fn greedy_best_first(map: &Map) {
 }
 
 fn a_star_1(map: &Map) {
-    let mut f = File::create("results/a_star_1_resutls.txt").unwrap();
+    println!("Running A* search.");
+    let mut f = File::create("results/a_star_1_results.txt").unwrap();
+    let mut done = false;
     let mut map = map.clone();
+    let mut q = PriorityQueue::<Visit, usize>::new();
+    let start = map.start;
+    let goal = map.goal;
 
+    map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
+    map.display_costs = true;
+    map.map[start.1][start.0].1 = Status::Path;
+    map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
+    q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
+
+    let mut pops = 0;
+    while let Some((v, p)) = q.pop() {
+        pops += 1;
+        let (step, loc, cost) = (v.step, v.loc, v.cost);
+        println!("iteration: {:?}, p: {}", v, usize::MAX - p);
+        f.write(format!("iteration: {:?}, p: {}\n", v, usize::MAX - p).as_bytes())
+            .expect("Write failed");
+        println!("{:?}", map);
+        f.write(map.map_text().as_bytes()).expect("Write failed");
+        std::thread::sleep(SLEEPER_TIME);
+
+        let tile = &mut map.map[loc.1][loc.0];
+        tile.1 = match tile.1 {
+            Status::Up(true) => Status::Up(false),
+            Status::Down(true) => Status::Down(false),
+            Status::Left(true) => Status::Left(false),
+            Status::Right(true) => Status::Right(false),
+            x => x,
+        };
+
+        if loc == goal {
+            done = true;
+            while let Some((v, _)) = q.pop() {
+                pops += 1;
+                map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
+                    Status::Up(true) => Status::Up(false),
+                    Status::Down(true) => Status::Down(false),
+                    Status::Left(true) => Status::Left(false),
+                    Status::Right(true) => Status::Right(false),
+                    x => x,
+                }
+            }
+            break;
+        }
+
+        // For each valid unvisited neighbor, check if it would have been better to come from here.
+        // if so, update its cost and direction, the add it to the visit queue.
+        if let Some(loc_new) = map.go_up(&loc) {
+            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                map.at_mut(loc_new).unwrap().1 = Status::Down(true);
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
+                );
+            }
+        }
+        if let Some(loc_new) = map.go_down(&loc) {
+            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                map.at_mut(loc_new).unwrap().1 = Status::Up(true);
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
+                );
+            }
+        }
+        if let Some(loc_new) = map.go_left(&loc) {
+            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                map.at_mut(loc_new).unwrap().1 = Status::Right(true);
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
+                );
+            }
+        }
+        if let Some(loc_new) = map.go_right(&loc) {
+            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                map.at_mut(loc_new).unwrap().1 = Status::Left(true);
+                q.push(
+                    Visit::new(step + 1, loc_new, maybe_cost),
+                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
+                );
+            }
+        }
+    }
+
+    if done {
+        // Now do backtracking
+        println!("Doing backtracking");
+        println!("{:?}", map);
+
+        let mut dist: usize = 0;
+        let mut cost: usize = 0;
+        let mut loc_opt = Some(goal);
+        loop {
+            match loc_opt {
+                Some(loc) => {
+                    loc_opt = map.follow(loc);
+                    map.at_mut(loc).unwrap().1 = Status::Path;
+                    dist += 1;
+                    cost += map.at(loc).unwrap().0.cost();
+                    if loc == start {
+                        map.display_costs = false;
+                    }
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    std::thread::sleep(SLEEPER_TIME);
+                }
+                None => break,
+            }
+        }
+        println!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* alg");
+        f.write(
+            format!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* alg")
+                .as_bytes(),
+        )
+        .expect("Write failed");
+    } else {
+        println!("A* search failed! No valid paths exist.");
+        f.write("A* search failed! No valid paths exist.".as_bytes())
+            .expect("Write failed");
+    }
     f.flush().expect("Couldn't flush to file");
 }
 
 fn a_star_2(map: &Map) {
-    let mut f = File::create("results/a_star_2_resutls.txt").unwrap();
+    let mut f = File::create("results/a_star_2_results.txt").unwrap();
     let mut map = map.clone();
 
     f.flush().expect("Couldn't flush to file");
@@ -779,8 +896,8 @@ fn main() {
     println!("The map data has been read successfully:\n{:?}", map);
 
     breadth_first(&map);
-    lowest_cost(&map);
+    lowest_cost_path(&map);
     greedy_best_first(&map);
-    // a_star_1(&map);
+    a_star_1(&map);
     // a_star_2(&map);
 }
