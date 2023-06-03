@@ -1,6 +1,6 @@
 5 3
 0 0
-4 1
+4 0
 FFMFF
 ffWFF
 fffff
