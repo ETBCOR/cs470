@@ -397,7 +397,7 @@ fn breadth_first(map: &Map) {
 
     let mut step_prev = 1;
     let mut pops = 0;
-    while let Some((step, loc)) = q.pop_front() {
+    'main_loop: while let Some((step, loc)) = q.pop_front() {
         pops += 1;
         if step != step_prev {
             println!("{:?}", map);
@@ -414,38 +414,36 @@ fn breadth_first(map: &Map) {
             x => x,
         };
 
-        if loc == goal {
-            done = true;
-            while let Some((_, loc)) = q.pop_front() {
-                pops += 1;
-                map.at_mut(loc).unwrap().1 = match map.at(loc).unwrap().1 {
-                    Status::Up(true) => Status::Up(false),
-                    Status::Down(true) => Status::Down(false),
-                    Status::Left(true) => Status::Left(false),
-                    Status::Right(true) => Status::Right(false),
-                    x => x,
+        // For each untraversed valid neighbor, update its direction
+        let nbs = vec![
+            (map.go_up(&loc), Status::Down(true)),
+            (map.go_down(&loc), Status::Up(true)),
+            (map.go_left(&loc), Status::Right(true)),
+            (map.go_right(&loc), Status::Left(true)),
+        ];
+        for n in nbs.into_iter() {
+            // (it came from here), and add it to the visit queue.
+            if let (Some(loc_new), dir) = n {
+                map.at_mut(loc_new).unwrap().1 = dir;
+                q.push_back((step + 1, loc_new));
+
+                if loc_new == goal {
+                    done = true;
+                    while let Some((_, loc)) = q.pop_front() {
+                        pops += 1;
+                        map.at_mut(loc).unwrap().1 = match map.at(loc).unwrap().1 {
+                            Status::Up(true) => Status::Up(false),
+                            Status::Down(true) => Status::Down(false),
+                            Status::Left(true) => Status::Left(false),
+                            Status::Right(true) => Status::Right(false),
+                            x => x,
+                        }
+                    }
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    break 'main_loop;
                 }
             }
-            break;
-        }
-
-        // For each untraversed valid neighbor, update its direction
-        // (it came from here), and add it to the visit queue.
-        if let Some(spot) = map.go_up(&loc) {
-            map.at_mut(spot).unwrap().1 = Status::Down(true);
-            q.push_back((step + 1, spot));
-        }
-        if let Some(spot) = map.go_down(&loc) {
-            map.at_mut(spot).unwrap().1 = Status::Up(true);
-            q.push_back((step + 1, spot));
-        }
-        if let Some(spot) = map.go_left(&loc) {
-            map.at_mut(spot).unwrap().1 = Status::Right(true);
-            q.push_back((step + 1, spot));
-        }
-        if let Some(spot) = map.go_right(&loc) {
-            map.at_mut(spot).unwrap().1 = Status::Left(true);
-            q.push_back((step + 1, spot));
         }
 
         step_prev = step;
@@ -504,7 +502,7 @@ fn lowest_cost_path(map: &Map) {
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
     let mut pops = 0;
-    while let Some((v, _)) = q.pop() {
+    'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         println!("{:?}", map);
@@ -521,55 +519,41 @@ fn lowest_cost_path(map: &Map) {
             x => x,
         };
 
-        if loc == goal {
-            done = true;
-            break;
-        }
-
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        if let Some(loc_new) = map.go_up(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Down(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - maybe_cost,
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_down(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Up(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - maybe_cost,
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_left(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Right(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - maybe_cost,
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_right(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Left(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - maybe_cost,
-                );
+        let nbs = vec![
+            (map.go_up(&loc), Status::Down(true)),
+            (map.go_down(&loc), Status::Up(true)),
+            (map.go_left(&loc), Status::Right(true)),
+            (map.go_right(&loc), Status::Left(true)),
+        ];
+        for n in nbs.into_iter() {
+            if let (Some(loc_new), dir) = n {
+                let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+                if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                    map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                    map.at_mut(loc_new).unwrap().1 = dir;
+                    q.push(
+                        Visit::new(step + 1, loc_new, maybe_cost),
+                        usize::MAX - maybe_cost,
+                    );
+                }
+                if loc_new == goal {
+                    done = true;
+                    while let Some((v, _)) = q.pop() {
+                        pops += 1;
+                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
+                            Status::Up(true) => Status::Up(false),
+                            Status::Down(true) => Status::Down(false),
+                            Status::Left(true) => Status::Left(false),
+                            Status::Right(true) => Status::Right(false),
+                            x => x,
+                        }
+                    }
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    break 'main_loop;
+                }
             }
         }
     }
@@ -640,7 +624,7 @@ fn greedy_best_first(map: &Map) {
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
     let mut pops = 0;
-    while let Some((v, _)) = q.pop() {
+    'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         println!("{:?}", map);
@@ -656,54 +640,39 @@ fn greedy_best_first(map: &Map) {
             x => x,
         };
 
-        if loc == goal {
-            done = true;
-            while let Some((v, _)) = q.pop() {
-                pops += 1;
-                map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                    Status::Up(true) => Status::Up(false),
-                    Status::Down(true) => Status::Down(false),
-                    Status::Left(true) => Status::Left(false),
-                    Status::Right(true) => Status::Right(false),
-                    x => x,
-                }
-            }
-            break;
-        }
-
         // For each untraversed valid neighbor, update its cost and direction,
         // and add it to the priority queue (priority based on TaxiCab dist to goal).
-        if let Some(loc_new) = map.go_up(&loc) {
-            map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
-            map.at_mut(loc_new).unwrap().1 = Status::Down(true);
-            q.push(
-                Visit::new(step + 1, loc_new, map.costs[loc_new.1][loc_new.0]),
-                usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
-            );
-        }
-        if let Some(loc_new) = map.go_down(&loc) {
-            map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
-            map.at_mut(loc_new).unwrap().1 = Status::Up(true);
-            q.push(
-                Visit::new(step + 1, loc_new, map.costs[loc_new.1][loc_new.0]),
-                usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
-            );
-        }
-        if let Some(loc_new) = map.go_left(&loc) {
-            map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
-            map.at_mut(loc_new).unwrap().1 = Status::Right(true);
-            q.push(
-                Visit::new(step + 1, loc_new, map.costs[loc_new.1][loc_new.0]),
-                usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
-            );
-        }
-        if let Some(loc_new) = map.go_right(&loc) {
-            map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
-            map.at_mut(loc_new).unwrap().1 = Status::Left(true);
-            q.push(
-                Visit::new(step + 1, loc_new, map.costs[loc_new.1][loc_new.0]),
-                usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
-            );
+        let nbs = vec![
+            (map.go_up(&loc), Status::Down(true)),
+            (map.go_down(&loc), Status::Up(true)),
+            (map.go_left(&loc), Status::Right(true)),
+            (map.go_right(&loc), Status::Left(true)),
+        ];
+        for n in nbs.into_iter() {
+            if let (Some(loc_new), dir) = n {
+                map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
+                map.at_mut(loc_new).unwrap().1 = dir;
+                q.push(
+                    Visit::new(step + 1, loc_new, map.costs[loc_new.1][loc_new.0]),
+                    usize::MAX - dist(loc_new, goal, DistMode::TaxiCab),
+                );
+                if loc_new == goal {
+                    done = true;
+                    while let Some((v, _)) = q.pop() {
+                        pops += 1;
+                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
+                            Status::Up(true) => Status::Up(false),
+                            Status::Down(true) => Status::Down(false),
+                            Status::Left(true) => Status::Left(false),
+                            Status::Right(true) => Status::Right(false),
+                            x => x,
+                        }
+                    }
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    break 'main_loop;
+                }
+            }
         }
     }
 
@@ -763,7 +732,7 @@ fn a_star_1(map: &Map) {
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
     let mut pops = 0;
-    while let Some((v, p)) = q.pop() {
+    'main_loop: while let Some((v, p)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         println!("iteration: {:?}, p: {}", v, usize::MAX - p);
@@ -782,65 +751,41 @@ fn a_star_1(map: &Map) {
             x => x,
         };
 
-        if loc == goal {
-            done = true;
-            while let Some((v, _)) = q.pop() {
-                pops += 1;
-                map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                    Status::Up(true) => Status::Up(false),
-                    Status::Down(true) => Status::Down(false),
-                    Status::Left(true) => Status::Left(false),
-                    Status::Right(true) => Status::Right(false),
-                    x => x,
-                }
-            }
-            break;
-        }
-
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        if let Some(loc_new) = map.go_up(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Down(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_down(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Up(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_left(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Right(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
-                );
-            }
-        }
-        if let Some(loc_new) = map.go_right(&loc) {
-            let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
-            if maybe_cost < map.costs[loc_new.1][loc_new.0] {
-                map.costs[loc_new.1][loc_new.0] = maybe_cost;
-                map.at_mut(loc_new).unwrap().1 = Status::Left(true);
-                q.push(
-                    Visit::new(step + 1, loc_new, maybe_cost),
-                    usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
-                );
+        let nbs = vec![
+            (map.go_up(&loc), Status::Down(true)),
+            (map.go_down(&loc), Status::Up(true)),
+            (map.go_left(&loc), Status::Right(true)),
+            (map.go_right(&loc), Status::Left(true)),
+        ];
+        for n in nbs.into_iter() {
+            if let (Some(loc_new), dir) = n {
+                let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+                if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                    map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                    map.at_mut(loc_new).unwrap().1 = dir;
+                    q.push(
+                        Visit::new(step + 1, loc_new, maybe_cost),
+                        usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::TaxiCab)),
+                    );
+                }
+                if loc_new == goal {
+                    done = true;
+                    while let Some((v, _)) = q.pop() {
+                        pops += 1;
+                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
+                            Status::Up(true) => Status::Up(false),
+                            Status::Down(true) => Status::Down(false),
+                            Status::Left(true) => Status::Left(false),
+                            Status::Right(true) => Status::Right(false),
+                            x => x,
+                        }
+                    }
+                    println!("{:?}", map);
+                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    break 'main_loop;
+                }
             }
         }
     }
@@ -892,7 +837,7 @@ fn a_star_2(map: &Map) {
 }
 
 fn main() {
-    let map = Map::from_file_path("map.txt");
+    let map = Map::from_file_path("map-small.txt");
     println!("The map data has been read successfully:\n{:?}", map);
 
     breadth_first(&map);
