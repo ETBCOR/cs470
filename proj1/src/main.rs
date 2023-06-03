@@ -417,6 +417,7 @@ fn breadth_first(map: &Map) {
         if loc == goal {
             done = true;
             while let Some((_, loc)) = q.pop_front() {
+                pops += 1;
                 map.at_mut(loc).unwrap().1 = match map.at(loc).unwrap().1 {
                     Status::Up(true) => Status::Up(false),
                     Status::Down(true) => Status::Down(false),
@@ -669,6 +670,7 @@ fn greedy_best_first(map: &Map) {
         if loc == goal {
             done = true;
             while let Some((v, _)) = q.pop() {
+                pops += 1;
                 map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
                     Status::Up(true) => Status::Up(false),
                     Status::Down(true) => Status::Down(false),
