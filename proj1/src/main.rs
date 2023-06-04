@@ -410,18 +410,21 @@ fn dist(a: Vec2, b: Vec2, mode: DistMode) -> usize {
 
 // ---- THE ALGORITHMS ---- //
 fn breadth_first(map: &Map) {
+    // Variables
     let mut f = File::create("results/breadth_first_results.txt").unwrap();
-    output("Running breadth first search\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = VecDeque::<(usize, Vec2)>::new();
     let (start, goal) = (map.start, map.goal);
+    let mut step_prev = 1;
+    let mut pops = 0;
 
+    // Initialization
     map.map[start.1][start.0].1 = Status::Path;
     q.push_back((0, start));
 
-    let mut step_prev = 1;
-    let mut pops = 0;
+    // Loop
+    output("Running breadth first search\n", &mut f);
     'main_loop: while let Some((step, loc)) = q.pop_front() {
         pops += 1;
         if step != step_prev {
@@ -471,20 +474,23 @@ fn breadth_first(map: &Map) {
 }
 
 fn lowest_cost_path(map: &Map) {
+    // Variables
     let mut f = File::create("results/lowest_cost_results.txt").unwrap();
-    output("Running lowest cost search\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
     let (start, goal) = (map.start, map.goal);
+    let mut pops = 0;
 
+    // Initialization
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
     map.map[start.1][start.0].1 = Status::Path;
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut pops = 0;
+    // Loop
+    output("Running lowest cost search\n", &mut f);
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
@@ -535,20 +541,23 @@ fn lowest_cost_path(map: &Map) {
 }
 
 fn greedy_best_first(map: &Map) {
+    // Variables
     let mut f = File::create("results/greedy_best_first_results.txt").unwrap();
-    output("Running greedy best first search\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
     let (start, goal) = (map.start, map.goal);
+    let mut pops = 0;
 
+    // Initialization
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
     map.map[start.1][start.0].1 = Status::Path;
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut pops = 0;
+    // Loop
+    output("Running greedy best first search\n", &mut f);
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
@@ -599,20 +608,22 @@ fn greedy_best_first(map: &Map) {
 }
 
 fn a_star_1(map: &Map) {
+    // Variables
     let mut f = File::create("results/a_star_1_results.txt").unwrap();
-    output("Running A* search (heuristic: taxicab dist)\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
     let (start, goal) = (map.start, map.goal);
+    let mut pops = 0;
 
+    // Initialization
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
     map.map[start.1][start.0].1 = Status::Path;
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut pops = 0;
+    output("Running A* search (heuristic: taxicab dist)\n", &mut f);
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
@@ -663,20 +674,23 @@ fn a_star_1(map: &Map) {
 }
 
 fn a_star_2(map: &Map) {
+    // Variables
     let mut f = File::create("results/a_star_2_results.txt").unwrap();
-    output("Running A* search (heuristic: euclidean dist)\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
     let (start, goal) = (map.start, map.goal);
+    let mut pops = 0;
 
+    // Initialization
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
     map.map[start.1][start.0].1 = Status::Path;
     map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
-    let mut pops = 0;
+    // Loop
+    output("Running A* search (heuristic: euclidean dist)\n", &mut f);
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
