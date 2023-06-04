@@ -63,6 +63,18 @@ enum Status {
     Right(bool),
 }
 
+impl Status {
+    fn deactivate(&mut self) {
+        match self {
+            Status::Up(true) => *self = Status::Up(false),
+            Status::Down(true) => *self = Status::Down(false),
+            Status::Left(true) => *self = Status::Left(false),
+            Status::Right(true) => *self = Status::Right(false),
+            _ => (),
+        };
+    }
+}
+
 type Spot = (Terrain, Status);
 type Vec2 = (usize, usize);
 
@@ -425,13 +437,7 @@ fn breadth_first(map: &Map) {
         }
 
         let tile = &mut map.map[loc.1][loc.0];
-        tile.1 = match tile.1 {
-            Status::Up(true) => Status::Up(false),
-            Status::Down(true) => Status::Down(false),
-            Status::Left(true) => Status::Left(false),
-            Status::Right(true) => Status::Right(false),
-            x => x,
-        };
+        tile.1.deactivate();
 
         // For each untraversed valid neighbor, update its direction
         let nbs = vec![
@@ -450,13 +456,7 @@ fn breadth_first(map: &Map) {
                     done = true;
                     while let Some((_, loc)) = q.pop_front() {
                         pops += 1;
-                        map.at_mut(loc).unwrap().1 = match map.at(loc).unwrap().1 {
-                            Status::Up(true) => Status::Up(false),
-                            Status::Down(true) => Status::Down(false),
-                            Status::Left(true) => Status::Left(false),
-                            Status::Right(true) => Status::Right(false),
-                            x => x,
-                        }
+                        map.at_mut(loc).unwrap().1.deactivate();
                     }
                     output(&map.map_text(), &mut f);
                     break 'main_loop;
@@ -525,13 +525,7 @@ fn lowest_cost_path(map: &Map) {
         output(&map.map_text(), &mut f);
 
         let tile = &mut map.map[loc.1][loc.0];
-        tile.1 = match tile.1 {
-            Status::Up(true) => Status::Up(false),
-            Status::Down(true) => Status::Down(false),
-            Status::Left(true) => Status::Left(false),
-            Status::Right(true) => Status::Right(false),
-            x => x,
-        };
+        tile.1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
@@ -556,13 +550,7 @@ fn lowest_cost_path(map: &Map) {
                     done = true;
                     while let Some((v, _)) = q.pop() {
                         pops += 1;
-                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                            Status::Up(true) => Status::Up(false),
-                            Status::Down(true) => Status::Down(false),
-                            Status::Left(true) => Status::Left(false),
-                            Status::Right(true) => Status::Right(false),
-                            x => x,
-                        }
+                        map.at_mut(v.loc).unwrap().1.deactivate();
                     }
                     output(&map.map_text(), &mut f);
                     break 'main_loop;
@@ -628,13 +616,7 @@ fn greedy_best_first(map: &Map) {
         output(&map.map_text(), &mut f);
 
         let tile = &mut map.map[loc.1][loc.0];
-        tile.1 = match tile.1 {
-            Status::Up(true) => Status::Up(false),
-            Status::Down(true) => Status::Down(false),
-            Status::Left(true) => Status::Left(false),
-            Status::Right(true) => Status::Right(false),
-            x => x,
-        };
+        tile.1.deactivate();
 
         // For each untraversed valid neighbor, update its cost and direction,
         // and add it to the priority queue (priority based on TaxiCab dist to goal).
@@ -656,13 +638,7 @@ fn greedy_best_first(map: &Map) {
                     done = true;
                     while let Some((v, _)) = q.pop() {
                         pops += 1;
-                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                            Status::Up(true) => Status::Up(false),
-                            Status::Down(true) => Status::Down(false),
-                            Status::Left(true) => Status::Left(false),
-                            Status::Right(true) => Status::Right(false),
-                            x => x,
-                        }
+                        map.at_mut(v.loc).unwrap().1.deactivate();
                     }
                     output(&map.map_text(), &mut f);
                     break 'main_loop;
@@ -709,7 +685,7 @@ fn greedy_best_first(map: &Map) {
 }
 
 fn a_star_1(map: &Map) {
-    let mut f = File::create("results/a_star_2_results.txt").unwrap();
+    let mut f = File::create("results/a_star_1_results.txt").unwrap();
     output("Running A* search (heuristic: taxicab dist)\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
@@ -730,13 +706,7 @@ fn a_star_1(map: &Map) {
         output(&map.map_text(), &mut f);
 
         let tile = &mut map.map[loc.1][loc.0];
-        tile.1 = match tile.1 {
-            Status::Up(true) => Status::Up(false),
-            Status::Down(true) => Status::Down(false),
-            Status::Left(true) => Status::Left(false),
-            Status::Right(true) => Status::Right(false),
-            x => x,
-        };
+        tile.1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
@@ -761,13 +731,7 @@ fn a_star_1(map: &Map) {
                     done = true;
                     while let Some((v, _)) = q.pop() {
                         pops += 1;
-                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                            Status::Up(true) => Status::Up(false),
-                            Status::Down(true) => Status::Down(false),
-                            Status::Left(true) => Status::Left(false),
-                            Status::Right(true) => Status::Right(false),
-                            x => x,
-                        }
+                        map.at_mut(v.loc).unwrap().1.deactivate();
                     }
                     output(&map.map_text(), &mut f);
                     break 'main_loop;
@@ -811,7 +775,7 @@ fn a_star_1(map: &Map) {
 }
 
 fn a_star_2(map: &Map) {
-    let mut f = File::create("results/a_star_1_results.txt").unwrap();
+    let mut f = File::create("results/a_star_2_results.txt").unwrap();
     output("Running A* search (heuristic: euclidean dist)\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
@@ -832,13 +796,7 @@ fn a_star_2(map: &Map) {
         output(&map.map_text(), &mut f);
 
         let tile = &mut map.map[loc.1][loc.0];
-        tile.1 = match tile.1 {
-            Status::Up(true) => Status::Up(false),
-            Status::Down(true) => Status::Down(false),
-            Status::Left(true) => Status::Left(false),
-            Status::Right(true) => Status::Right(false),
-            x => x,
-        };
+        tile.1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
@@ -863,13 +821,7 @@ fn a_star_2(map: &Map) {
                     done = true;
                     while let Some((v, _)) = q.pop() {
                         pops += 1;
-                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
-                            Status::Up(true) => Status::Up(false),
-                            Status::Down(true) => Status::Down(false),
-                            Status::Left(true) => Status::Left(false),
-                            Status::Right(true) => Status::Right(false),
-                            x => x,
-                        }
+                        map.at_mut(v.loc).unwrap().1.deactivate();
                     }
                     output(&map.map_text(), &mut f);
                     break 'main_loop;
@@ -913,7 +865,7 @@ fn a_star_2(map: &Map) {
 }
 
 fn main() {
-    let map = Map::from_file_path("map.txt");
+    let map = Map::from_file_path("map-small.txt");
     println!("The map data has been read successfully:\n{:?}", map);
 
     breadth_first(&map);
