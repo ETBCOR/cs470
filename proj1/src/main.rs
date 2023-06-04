@@ -303,6 +303,37 @@ impl Map {
         }
     }
 
+    fn backtrack(&mut self, f: &mut File) -> (usize, usize) {
+        let mut dist: usize = 0;
+        let mut cost: usize = 0;
+        let mut loc_opt = Some(self.goal);
+        loop {
+            match loc_opt {
+                Some(loc) => {
+                    loc_opt = self.follow(loc);
+                    self.at_mut(loc).unwrap().1 = Status::Path;
+                    dist += 1;
+                    cost += self.at(loc).unwrap().0.cost();
+                    if loc == self.start {
+                        self.display_costs = false;
+                    }
+                    output(&self.map_text(), f);
+                }
+                None => break,
+            }
+        }
+        (dist, cost)
+    }
+
+    fn go_neighbors(&self, loc: &Vec2) -> Vec<(Option<Vec2>, Status)> {
+        vec![
+            (self.go_up(&loc), Status::Down(true)),
+            (self.go_down(&loc), Status::Up(true)),
+            (self.go_left(&loc), Status::Right(true)),
+            (self.go_right(&loc), Status::Left(true)),
+        ]
+    }
+
     fn go_up(&self, loc: &Vec2) -> Option<Vec2> {
         if loc.1 == 0 {
             return None;
@@ -384,8 +415,7 @@ fn breadth_first(map: &Map) {
     let mut done = false;
     let mut map = map.clone();
     let mut q = VecDeque::<(usize, Vec2)>::new();
-    let start = map.start;
-    let goal = map.goal;
+    let (start, goal) = (map.start, map.goal);
 
     map.map[start.1][start.0].1 = Status::Path;
     q.push_back((0, start));
@@ -398,17 +428,10 @@ fn breadth_first(map: &Map) {
             output(&map.map_text(), &mut f);
         }
 
-        let tile = &mut map.map[loc.1][loc.0];
-        tile.1.deactivate();
+        map.at_mut(loc).unwrap().1.deactivate();
 
         // For each untraversed valid neighbor, update its direction
-        let nbs = vec![
-            (map.go_up(&loc), Status::Down(true)),
-            (map.go_down(&loc), Status::Up(true)),
-            (map.go_left(&loc), Status::Right(true)),
-            (map.go_right(&loc), Status::Left(true)),
-        ];
-        for n in nbs.into_iter() {
+        for n in map.go_neighbors(&loc).into_iter() {
             // (it came from here), and add it to the visit queue.
             if let (Some(loc_new), dir) = n {
                 map.at_mut(loc_new).unwrap().1 = dir;
@@ -430,26 +453,8 @@ fn breadth_first(map: &Map) {
     }
 
     if done {
-        // Now do backtracking
         output("Doing backtracking\n", &mut f);
-
-        let mut dist: usize = 0;
-        let mut cost: usize = 0;
-        let mut loc_opt = Some(goal);
-        loop {
-            match loc_opt {
-                Some(loc) => {
-                    loc_opt = map.follow(loc);
-                    map.at_mut(loc).unwrap().1 = Status::Path;
-                    dist += 1;
-                    cost += map.at(loc).unwrap().0.cost();
-                    if loc != start {
-                        output(&map.map_text(), &mut f);
-                    }
-                }
-                None => break,
-            }
-        }
+        let (dist, cost) = map.backtrack(&mut f);
         output(
             &format!(
                 "Path found (dist: {dist} cost: {cost} iterations: {pops}) by breadth first alg\n"
@@ -471,8 +476,7 @@ fn lowest_cost_path(map: &Map) {
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
-    let start = map.start;
-    let goal = map.goal;
+    let (start, goal) = (map.start, map.goal);
 
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
@@ -486,18 +490,11 @@ fn lowest_cost_path(map: &Map) {
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         output(&map.map_text(), &mut f);
 
-        let tile = &mut map.map[loc.1][loc.0];
-        tile.1.deactivate();
+        map.at_mut(loc).unwrap().1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        let nbs = vec![
-            (map.go_up(&loc), Status::Down(true)),
-            (map.go_down(&loc), Status::Up(true)),
-            (map.go_left(&loc), Status::Right(true)),
-            (map.go_right(&loc), Status::Left(true)),
-        ];
-        for n in nbs.into_iter() {
+        for n in map.go_neighbors(&loc).into_iter() {
             if let (Some(loc_new), dir) = n {
                 let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
                 if maybe_cost < map.costs[loc_new.1][loc_new.0] {
@@ -524,26 +521,7 @@ fn lowest_cost_path(map: &Map) {
     if done {
         // Now do backtracking
         output("Doing backtracking\n", &mut f);
-
-        let mut dist: usize = 0;
-        let mut cost: usize = 0;
-        let mut loc_opt = Some(goal);
-        loop {
-            match loc_opt {
-                Some(loc) => {
-                    loc_opt = map.follow(loc);
-                    map.at_mut(loc).unwrap().1 = Status::Path;
-                    dist += 1;
-                    cost += map.at(loc).unwrap().0.cost();
-                    if loc == start {
-                        map.display_costs = false;
-                    }
-                    output(&map.map_text(), &mut f);
-                }
-                None => break,
-            }
-        }
-
+        let (dist, cost) = map.backtrack(&mut f);
         output(
             &format!(
                 "Path found (dist: {dist} cost: {cost} iterations: {pops}) by lowest cost alg\n"
@@ -562,8 +540,7 @@ fn greedy_best_first(map: &Map) {
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
-    let start = map.start;
-    let goal = map.goal;
+    let (start, goal) = (map.start, map.goal);
 
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
@@ -577,18 +554,11 @@ fn greedy_best_first(map: &Map) {
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         output(&map.map_text(), &mut f);
 
-        let tile = &mut map.map[loc.1][loc.0];
-        tile.1.deactivate();
+        map.at_mut(loc).unwrap().1.deactivate();
 
         // For each untraversed valid neighbor, update its cost and direction,
         // and add it to the priority queue (priority based on TaxiCab dist to goal).
-        let nbs = vec![
-            (map.go_up(&loc), Status::Down(true)),
-            (map.go_down(&loc), Status::Up(true)),
-            (map.go_left(&loc), Status::Right(true)),
-            (map.go_right(&loc), Status::Left(true)),
-        ];
-        for n in nbs.into_iter() {
+        for n in map.go_neighbors(&loc).into_iter() {
             if let (Some(loc_new), dir) = n {
                 map.costs[loc_new.1][loc_new.0] = cost + map.at(loc_new).unwrap().0.cost();
                 map.at_mut(loc_new).unwrap().1 = dir;
@@ -612,25 +582,7 @@ fn greedy_best_first(map: &Map) {
     if done {
         // Now do backtracking
         output("Doing backtracking\n", &mut f);
-
-        let mut dist: usize = 0;
-        let mut cost: usize = 0;
-        let mut loc_opt = Some(goal);
-        loop {
-            match loc_opt {
-                Some(loc) => {
-                    loc_opt = map.follow(loc);
-                    map.at_mut(loc).unwrap().1 = Status::Path;
-                    dist += 1;
-                    cost += map.at(loc).unwrap().0.cost();
-                    if loc == start {
-                        map.display_costs = false;
-                    }
-                    output(&map.map_text(), &mut f);
-                }
-                None => break,
-            }
-        }
+        let (dist, cost) = map.backtrack(&mut f);
         output(
             &format!(
             "Path found (dist: {dist} cost: {cost} iterations: {pops}) by greedy best first alg\n"
@@ -652,8 +604,7 @@ fn a_star_1(map: &Map) {
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
-    let start = map.start;
-    let goal = map.goal;
+    let (start, goal) = (map.start, map.goal);
 
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
@@ -667,18 +618,11 @@ fn a_star_1(map: &Map) {
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         output(&map.map_text(), &mut f);
 
-        let tile = &mut map.map[loc.1][loc.0];
-        tile.1.deactivate();
+        map.at_mut(loc).unwrap().1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        let nbs = vec![
-            (map.go_up(&loc), Status::Down(true)),
-            (map.go_down(&loc), Status::Up(true)),
-            (map.go_left(&loc), Status::Right(true)),
-            (map.go_right(&loc), Status::Left(true)),
-        ];
-        for n in nbs.into_iter() {
+        for n in map.go_neighbors(&loc).into_iter() {
             if let (Some(loc_new), dir) = n {
                 let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
                 if maybe_cost < map.costs[loc_new.1][loc_new.0] {
@@ -705,25 +649,7 @@ fn a_star_1(map: &Map) {
     if done {
         // Now do backtracking
         output("Doing backtracking\n", &mut f);
-
-        let mut dist: usize = 0;
-        let mut cost: usize = 0;
-        let mut loc_opt = Some(goal);
-        loop {
-            match loc_opt {
-                Some(loc) => {
-                    loc_opt = map.follow(loc);
-                    map.at_mut(loc).unwrap().1 = Status::Path;
-                    dist += 1;
-                    cost += map.at(loc).unwrap().0.cost();
-                    if loc == start {
-                        map.display_costs = false;
-                    }
-                    output(&map.map_text(), &mut f);
-                }
-                None => break,
-            }
-        }
+        let (dist, cost) = map.backtrack(&mut f);
         output(
             &format!(
                 "Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* (taxicab) alg\n"
@@ -742,8 +668,7 @@ fn a_star_2(map: &Map) {
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
-    let start = map.start;
-    let goal = map.goal;
+    let (start, goal) = (map.start, map.goal);
 
     map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
     map.display_costs = true;
@@ -757,18 +682,11 @@ fn a_star_2(map: &Map) {
         let (step, loc, cost) = (v.step, v.loc, v.cost);
         output(&map.map_text(), &mut f);
 
-        let tile = &mut map.map[loc.1][loc.0];
-        tile.1.deactivate();
+        map.at_mut(loc).unwrap().1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
         // if so, update its cost and direction, the add it to the visit queue.
-        let nbs = vec![
-            (map.go_up(&loc), Status::Down(true)),
-            (map.go_down(&loc), Status::Up(true)),
-            (map.go_left(&loc), Status::Right(true)),
-            (map.go_right(&loc), Status::Left(true)),
-        ];
-        for n in nbs.into_iter() {
+        for n in map.go_neighbors(&loc).into_iter() {
             if let (Some(loc_new), dir) = n {
                 let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
                 if maybe_cost < map.costs[loc_new.1][loc_new.0] {
@@ -795,25 +713,7 @@ fn a_star_2(map: &Map) {
     if done {
         // Now do backtracking
         output("Doing backtracking\n", &mut f);
-
-        let mut dist: usize = 0;
-        let mut cost: usize = 0;
-        let mut loc_opt = Some(goal);
-        loop {
-            match loc_opt {
-                Some(loc) => {
-                    loc_opt = map.follow(loc);
-                    map.at_mut(loc).unwrap().1 = Status::Path;
-                    dist += 1;
-                    cost += map.at(loc).unwrap().0.cost();
-                    if loc == start {
-                        map.display_costs = false;
-                    }
-                    output(&map.map_text(), &mut f);
-                }
-                None => break,
-            }
-        }
+        let (dist, cost) = map.backtrack(&mut f);
         output(
             &format!(
                 "Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* (euclid) alg\n"
