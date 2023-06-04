@@ -9,6 +9,12 @@ use std::{
 
 const SLEEPER_TIME: std::time::Duration = std::time::Duration::from_millis(0);
 
+fn output(string: &str, file: &mut File) {
+    let bytes = string.as_bytes();
+    std::io::stdout().write(bytes).expect("stdio write failed");
+    file.write(bytes).expect("file write failed");
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Terrain {
     Road,
@@ -383,9 +389,23 @@ impl Display for Map {
     }
 }
 
+enum DistMode {
+    TaxiCab,
+    Euclidean,
+}
+
+fn dist(a: Vec2, b: Vec2, mode: DistMode) -> usize {
+    let d = (a.0.abs_diff(b.0), a.1.abs_diff(b.1));
+    match mode {
+        DistMode::TaxiCab => d.0 + d.1,
+        DistMode::Euclidean => ((d.0 * d.0 + d.1 * d.1) as f64).sqrt().floor() as usize,
+    }
+}
+
+// ---- THE ALGORITHMS ---- //
 fn breadth_first(map: &Map) {
-    println!("Running breadth first search.");
     let mut f = File::create("results/breadth_first_results.txt").unwrap();
+    output("Running breadth first search\n", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = VecDeque::<(usize, Vec2)>::new();
@@ -400,8 +420,7 @@ fn breadth_first(map: &Map) {
     'main_loop: while let Some((step, loc)) = q.pop_front() {
         pops += 1;
         if step != step_prev {
-            println!("{:?}", map);
-            f.write(map.map_text().as_bytes()).expect("Write failed");
+            output(&map.map_text(), &mut f);
             std::thread::sleep(SLEEPER_TIME);
         }
 
@@ -439,8 +458,7 @@ fn breadth_first(map: &Map) {
                             x => x,
                         }
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     break 'main_loop;
                 }
             }
@@ -462,33 +480,28 @@ fn breadth_first(map: &Map) {
                     dist += 1;
                     cost += map.at(loc).unwrap().0.cost();
                     if loc != start {
-                        println!("{:?}", map);
-                        f.write(map.map_text().as_bytes()).expect("Write failed");
+                        output(&map.map_text(), &mut f);
                         std::thread::sleep(SLEEPER_TIME);
                     }
                 }
                 None => break,
             }
         }
-        println!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by breadth first alg");
-        f.write(
-            format!(
+        output(
+            &format!(
                 "Path found (dist: {dist} cost: {cost} iterations: {pops}) by breadth first alg"
-            )
-            .as_bytes(),
-        )
-        .expect("Write failed");
+            ),
+            &mut f,
+        );
     } else {
-        println!("Breadth first search failed! No valid paths exist.");
-        f.write("Breadth first search failed! No valid paths exist.".as_bytes())
-            .expect("Write failed");
+        output("Breadth first search failed! No valid paths exist", &mut f);
     }
     f.flush().expect("Couldn't flush to file");
 }
 
 fn lowest_cost_path(map: &Map) {
-    println!("Running lowest cost search.");
     let mut f = File::create("results/lowest_cost_results.txt").unwrap();
+    output("Running lowest cost search", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
@@ -505,9 +518,7 @@ fn lowest_cost_path(map: &Map) {
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
-        println!("{:?}", map);
-        f.write(map.map_text().as_bytes()).expect("Write failed");
-
+        output(&map.map_text(), &mut f);
         std::thread::sleep(SLEEPER_TIME);
 
         let tile = &mut map.map[loc.1][loc.0];
@@ -550,8 +561,7 @@ fn lowest_cost_path(map: &Map) {
                             x => x,
                         }
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     break 'main_loop;
                 }
             }
@@ -560,8 +570,7 @@ fn lowest_cost_path(map: &Map) {
 
     if done {
         // Now do backtracking
-        println!("Doing backtracking");
-        println!("{:?}", map);
+        output("Doing backtracking", &mut f);
 
         let mut dist: usize = 0;
         let mut cost: usize = 0;
@@ -576,41 +585,28 @@ fn lowest_cost_path(map: &Map) {
                     if loc == start {
                         map.display_costs = false;
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     std::thread::sleep(SLEEPER_TIME);
                 }
                 None => break,
             }
         }
-        println!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by lowest cost alg");
-        f.write(
-            format!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by lowest cost alg")
-                .as_bytes(),
-        )
-        .expect("Write failed");
+
+        output(
+            &format!(
+                "Path found (dist: {dist} cost: {cost} iterations: {pops}) by lowest cost alg"
+            ),
+            &mut f,
+        );
     } else {
-        println!("Lowest cost search failed! No valid paths exist.");
-        f.write("Lowest cost search failed! No valid paths exist.".as_bytes())
-            .expect("Write failed");
+        output("Lowest cost search failed! No valid paths exist", &mut f);
     }
     f.flush().expect("Couldn't flush to file");
 }
 
-enum DistMode {
-    TaxiCab,
-    // Euclidean,
-}
-
-fn dist(a: Vec2, b: Vec2, mode: DistMode) -> usize {
-    match mode {
-        DistMode::TaxiCab => a.0.abs_diff(b.0) + a.1.abs_diff(b.1),
-    }
-}
-
 fn greedy_best_first(map: &Map) {
-    println!("Running greedy best first search.");
     let mut f = File::create("results/greedy_best_first_results.txt").unwrap();
+    output("Running greedy best first search", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
@@ -627,8 +623,7 @@ fn greedy_best_first(map: &Map) {
     'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
-        println!("{:?}", map);
-        f.write(map.map_text().as_bytes()).expect("Write failed");
+        output(&map.map_text(), &mut f);
         std::thread::sleep(SLEEPER_TIME);
 
         let tile = &mut map.map[loc.1][loc.0];
@@ -668,8 +663,7 @@ fn greedy_best_first(map: &Map) {
                             x => x,
                         }
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     break 'main_loop;
                 }
             }
@@ -678,8 +672,7 @@ fn greedy_best_first(map: &Map) {
 
     if done {
         // Now do backtracking
-        println!("Doing backtracking");
-        println!("{:?}", map);
+        output("Doing backtracking", &mut f);
 
         let mut dist: usize = 0;
         let mut cost: usize = 0;
@@ -694,31 +687,30 @@ fn greedy_best_first(map: &Map) {
                     if loc == start {
                         map.display_costs = false;
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     std::thread::sleep(SLEEPER_TIME);
                 }
                 None => break,
             }
         }
-        println!(
+        output(
+            &format!(
             "Path found (dist: {dist} cost: {cost} iterations: {pops}) by greedy best first alg"
+        ),
+            &mut f,
         );
-        f.write(
-            format!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by greedy best first alg").as_bytes(),
-        )
-        .expect("Write failed");
     } else {
-        println!("Greedy best first search failed! No valid paths exist.");
-        f.write("Greedy best first search failed! No valid paths exist.".as_bytes())
-            .expect("Write failed");
+        output(
+            "Greedy best first search failed! No valid paths exist",
+            &mut f,
+        );
     }
     f.flush().expect("Couldn't flush to file");
 }
 
 fn a_star_1(map: &Map) {
-    println!("Running A* search.");
-    let mut f = File::create("results/a_star_1_results.txt").unwrap();
+    let mut f = File::create("results/a_star_2_results.txt").unwrap();
+    output("Running A* search (heuristic: taxicab dist)", &mut f);
     let mut done = false;
     let mut map = map.clone();
     let mut q = PriorityQueue::<Visit, usize>::new();
@@ -732,14 +724,10 @@ fn a_star_1(map: &Map) {
     q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
 
     let mut pops = 0;
-    'main_loop: while let Some((v, p)) = q.pop() {
+    'main_loop: while let Some((v, _)) = q.pop() {
         pops += 1;
         let (step, loc, cost) = (v.step, v.loc, v.cost);
-        println!("iteration: {:?}, p: {}", v, usize::MAX - p);
-        f.write(format!("iteration: {:?}, p: {}\n", v, usize::MAX - p).as_bytes())
-            .expect("Write failed");
-        println!("{:?}", map);
-        f.write(map.map_text().as_bytes()).expect("Write failed");
+        output(&map.map_text(), &mut f);
         std::thread::sleep(SLEEPER_TIME);
 
         let tile = &mut map.map[loc.1][loc.0];
@@ -782,8 +770,7 @@ fn a_star_1(map: &Map) {
                             x => x,
                         }
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     break 'main_loop;
                 }
             }
@@ -792,8 +779,7 @@ fn a_star_1(map: &Map) {
 
     if done {
         // Now do backtracking
-        println!("Doing backtracking");
-        println!("{:?}", map);
+        output("Doing backtracking", &mut f);
 
         let mut dist: usize = 0;
         let mut cost: usize = 0;
@@ -808,41 +794,135 @@ fn a_star_1(map: &Map) {
                     if loc == start {
                         map.display_costs = false;
                     }
-                    println!("{:?}", map);
-                    f.write(map.map_text().as_bytes()).expect("Write failed");
+                    output(&map.map_text(), &mut f);
                     std::thread::sleep(SLEEPER_TIME);
                 }
                 None => break,
             }
         }
-        println!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* alg");
-        f.write(
-            format!("Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* alg")
-                .as_bytes(),
-        )
-        .expect("Write failed");
+        output(
+            &format!(
+                "Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* (taxicab) alg"
+            ),
+            &mut f,
+        );
     } else {
-        println!("A* search failed! No valid paths exist.");
-        f.write("A* search failed! No valid paths exist.".as_bytes())
-            .expect("Write failed");
+        output("A* search failed! No valid paths exist", &mut f);
     }
     f.flush().expect("Couldn't flush to file");
 }
 
 fn a_star_2(map: &Map) {
-    let mut f = File::create("results/a_star_2_results.txt").unwrap();
+    let mut f = File::create("results/a_star_1_results.txt").unwrap();
+    output("Running A* search (heuristic: euclidean dist)", &mut f);
+    let mut done = false;
     let mut map = map.clone();
+    let mut q = PriorityQueue::<Visit, usize>::new();
+    let start = map.start;
+    let goal = map.goal;
 
+    map.costs = vec![vec![usize::MAX; map.dim.0]; map.dim.1];
+    map.display_costs = true;
+    map.map[start.1][start.0].1 = Status::Path;
+    map.costs[start.1][start.0] = map.map[start.1][start.0].0.cost();
+    q.push(Visit::new(0, start, map.costs[start.1][start.0]), 0);
+
+    let mut pops = 0;
+    'main_loop: while let Some((v, _)) = q.pop() {
+        pops += 1;
+        let (step, loc, cost) = (v.step, v.loc, v.cost);
+        output(&map.map_text(), &mut f);
+        std::thread::sleep(SLEEPER_TIME);
+
+        let tile = &mut map.map[loc.1][loc.0];
+        tile.1 = match tile.1 {
+            Status::Up(true) => Status::Up(false),
+            Status::Down(true) => Status::Down(false),
+            Status::Left(true) => Status::Left(false),
+            Status::Right(true) => Status::Right(false),
+            x => x,
+        };
+
+        // For each valid unvisited neighbor, check if it would have been better to come from here.
+        // if so, update its cost and direction, the add it to the visit queue.
+        let nbs = vec![
+            (map.go_up(&loc), Status::Down(true)),
+            (map.go_down(&loc), Status::Up(true)),
+            (map.go_left(&loc), Status::Right(true)),
+            (map.go_right(&loc), Status::Left(true)),
+        ];
+        for n in nbs.into_iter() {
+            if let (Some(loc_new), dir) = n {
+                let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
+                if maybe_cost < map.costs[loc_new.1][loc_new.0] {
+                    map.costs[loc_new.1][loc_new.0] = maybe_cost;
+                    map.at_mut(loc_new).unwrap().1 = dir;
+                    q.push(
+                        Visit::new(step + 1, loc_new, maybe_cost),
+                        usize::MAX - (maybe_cost + dist(loc_new, goal, DistMode::Euclidean)),
+                    );
+                }
+                if loc_new == goal {
+                    done = true;
+                    while let Some((v, _)) = q.pop() {
+                        pops += 1;
+                        map.at_mut(v.loc).unwrap().1 = match map.at(v.loc).unwrap().1 {
+                            Status::Up(true) => Status::Up(false),
+                            Status::Down(true) => Status::Down(false),
+                            Status::Left(true) => Status::Left(false),
+                            Status::Right(true) => Status::Right(false),
+                            x => x,
+                        }
+                    }
+                    output(&map.map_text(), &mut f);
+                    break 'main_loop;
+                }
+            }
+        }
+    }
+
+    if done {
+        // Now do backtracking
+        output("Doing backtracking", &mut f);
+
+        let mut dist: usize = 0;
+        let mut cost: usize = 0;
+        let mut loc_opt = Some(goal);
+        loop {
+            match loc_opt {
+                Some(loc) => {
+                    loc_opt = map.follow(loc);
+                    map.at_mut(loc).unwrap().1 = Status::Path;
+                    dist += 1;
+                    cost += map.at(loc).unwrap().0.cost();
+                    if loc == start {
+                        map.display_costs = false;
+                    }
+                    output(&map.map_text(), &mut f);
+                    std::thread::sleep(SLEEPER_TIME);
+                }
+                None => break,
+            }
+        }
+        output(
+            &format!(
+                "Path found (dist: {dist} cost: {cost} iterations: {pops}) by A* (euclid) alg"
+            ),
+            &mut f,
+        );
+    } else {
+        output("A* search failed! No valid paths exist", &mut f);
+    }
     f.flush().expect("Couldn't flush to file");
 }
 
 fn main() {
-    let map = Map::from_file_path("map-small.txt");
+    let map = Map::from_file_path("map.txt");
     println!("The map data has been read successfully:\n{:?}", map);
 
     breadth_first(&map);
     lowest_cost_path(&map);
     greedy_best_first(&map);
     a_star_1(&map);
-    // a_star_2(&map);
+    a_star_2(&map);
 }
