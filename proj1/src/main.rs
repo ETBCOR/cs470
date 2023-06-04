@@ -348,44 +348,6 @@ impl Map {
         }
         None
     }
-
-    fn get_up(&self, loc: &Vec2) -> Option<Vec2> {
-        if loc.1 == 0 {
-            return None;
-        }
-        let loc = (loc.0, loc.1 - 1);
-        match self.at(loc) {
-            Some(_) => Some(loc),
-            _ => None,
-        }
-    }
-
-    fn get_down(&self, loc: &Vec2) -> Option<Vec2> {
-        let loc = (loc.0, loc.1 + 1);
-        match self.at(loc) {
-            Some(_) => Some(loc),
-            _ => None,
-        }
-    }
-
-    fn get_left(&self, loc: &Vec2) -> Option<Vec2> {
-        if loc.0 == 0 {
-            return None;
-        }
-        let loc = (loc.0 - 1, loc.1);
-        match self.at(loc) {
-            Some(_) => Some(loc),
-            _ => None,
-        }
-    }
-
-    fn get_right(&self, loc: &Vec2) -> Option<Vec2> {
-        let loc = (loc.0 + 1, loc.1);
-        match self.at(loc) {
-            Some(_) => Some(loc),
-            _ => None,
-        }
-    }
 }
 
 impl Debug for Map {
