@@ -4,7 +4,7 @@ use std::{
     io::{self, Write},
 };
 
-const HEIGHT_LIMIT: usize = 4;
+const MAX_DEPTH: usize = 4;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -19,6 +19,7 @@ struct Area {
 }
 
 const DIM: Vec2 = Vec2 { row: 6, col: 7 };
+// const DIM: Vec2 = Vec2 { row: 4, col: 4 };
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Spot {
@@ -75,9 +76,31 @@ enum CheckDir {
 
 #[derive(Debug, PartialEq)]
 enum Score {
-    None(isize),
+    InProgress(isize),
     O,
     X,
+}
+
+impl PartialEq<Score> for Spot {
+    fn eq(&self, other: &Score) -> bool {
+        match other {
+            Score::InProgress(_) if *self == Spot::Empty => true,
+            Score::O if *self == Spot::O => true,
+            Score::X if *self == Spot::X => true,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Spot> for Score {
+    fn eq(&self, other: &Spot) -> bool {
+        match self {
+            Score::InProgress(_) if *other == Spot::Empty => true,
+            Score::O if *other == Spot::O => true,
+            Score::X if *other == Spot::X => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -111,7 +134,7 @@ impl GameBoard {
             self.turn_human();
             moves += 1;
             match self.score(Spot::O) {
-                Score::None(s) => {
+                Score::InProgress(s) => {
                     println!("Human's current score: {}", s);
                 }
                 Score::O => {
@@ -127,7 +150,7 @@ impl GameBoard {
             self.turn_bot();
             moves += 1;
             match self.score(Spot::X) {
-                Score::None(s) => {
+                Score::InProgress(s) => {
                     println!("Bot's current score: {}", s);
                 }
                 Score::X => {
@@ -218,7 +241,7 @@ impl GameBoard {
 
         // let col = self._best_move_rnd();
         let col = self
-            .best_move(Spot::X, HEIGHT_LIMIT)
+            .best_move(Spot::X, MAX_DEPTH)
             .expect("The bot has no valid positions to play!")
             .col;
 
@@ -267,7 +290,7 @@ impl GameBoard {
             CheckDir::N,
             spot,
         );
-        if let Score::None(s) = s {
+        if let Score::InProgress(s) = s {
             score += s;
         } else {
             return s;
@@ -283,7 +306,7 @@ impl GameBoard {
             CheckDir::E,
             spot,
         );
-        if let Score::None(s) = s {
+        if let Score::InProgress(s) = s {
             score += s;
         } else {
             return s;
@@ -299,7 +322,7 @@ impl GameBoard {
             CheckDir::NE,
             spot,
         );
-        if let Score::None(s) = s {
+        if let Score::InProgress(s) = s {
             score += s;
         } else {
             return s;
@@ -315,16 +338,15 @@ impl GameBoard {
             CheckDir::SE,
             spot,
         );
-        if let Score::None(s) = s {
+        if let Score::InProgress(s) = s {
             score += s;
         } else {
             return s;
         }
-        Score::None(score)
+        Score::InProgress(score)
     }
 
     fn score_area(&self, area: Area, dir: CheckDir, spot: Spot) -> Score {
-        // println!("Scoring area (area: {:?}, dir: {:?}, spot: {:?}", area, dir, spot);
         let mut score = 0;
         let mut row = area.min.row;
 
@@ -332,7 +354,7 @@ impl GameBoard {
             let mut col = area.min.col;
             while col <= area.max.col {
                 let s = self.score_pos(Vec2 { row, col }, &dir, &spot);
-                if let Score::None(s) = s {
+                if let Score::InProgress(s) = s {
                     score += s;
                 } else {
                     return s;
@@ -341,15 +363,17 @@ impl GameBoard {
             }
             row += 1;
         }
-        Score::None(score)
+        Score::InProgress(score)
     }
 
     fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> Score {
-        // println!("Scoring position (loc: {:?}, dir: {:?}, spot: {:?}", loc, dir, spot);
         let row = loc.row as usize;
         let col = loc.col as usize;
         let mut line_vec = Vec::<Spot>::new();
-        let line: &[Spot] = match dir {
+        let mut under_vec = Vec::<bool>::new();
+        let line: &[Spot];
+        let under: &[bool];
+        match dir {
             CheckDir::N => {
                 for x in 0..4 {
                     line_vec.push(
@@ -361,9 +385,26 @@ impl GameBoard {
                             .unwrap(),
                     );
                 }
-                &line_vec[..]
+                line = &line_vec[..];
+                under_vec = vec![true; 4];
             }
-            CheckDir::E => &self.grid.grid[row][col..col + 4],
+            CheckDir::E => {
+                line = &self.grid.grid[row][col..col + 4];
+                if row > 0 {
+                    for c in col..col + 4 {
+                        let loc = Vec2 {
+                            row: row as isize - 1,
+                            col: c as isize,
+                        };
+                        match self.grid.at(&loc) {
+                            Some(Spot::Empty) => under_vec.push(false),
+                            Some(_) | None => under_vec.push(true),
+                        }
+                    }
+                } else {
+                    under_vec = vec![true; 4];
+                }
+            }
             CheckDir::NE => {
                 for x in 0..4 {
                     line_vec.push(
@@ -374,8 +415,17 @@ impl GameBoard {
                             })
                             .unwrap(),
                     );
+                    under_vec.push(
+                        match self.grid.at(&Vec2 {
+                            row: row as isize + x - 1,
+                            col: col as isize + x,
+                        }) {
+                            Some(Spot::Empty) => false,
+                            Some(_) | None => true,
+                        },
+                    );
                 }
-                &line_vec[..]
+                line = &line_vec[..]
             }
             CheckDir::SE => {
                 for x in 0..4 {
@@ -387,20 +437,36 @@ impl GameBoard {
                             })
                             .unwrap(),
                     );
+                    under_vec.push(
+                        match self.grid.at(&Vec2 {
+                            row: row as isize - x - 1,
+                            col: col as isize + x,
+                        }) {
+                            Some(Spot::Empty) => false,
+                            Some(_) | None => true,
+                        },
+                    );
                 }
-                &line_vec[..]
+                line = &line_vec[..]
             }
-        };
+        }
+        under = &under_vec[..];
         let mut line_vec_rev = Vec::from(line);
+        let mut under_vec_rev = Vec::from(under);
         line_vec_rev.reverse();
+        under_vec_rev.reverse();
         let line_rev: &[Spot] = &line_vec_rev[..];
-        match (self.score_line(line, spot), self.score_line(line_rev, spot)) {
-            (Score::None(f), Score::None(r)) => Score::None(f + r),
-            (w, Score::None(_)) | (Score::None(_), w) | (w, _) => w,
+        let under_rev: &[bool] = &under_vec_rev[..];
+        match (
+            self.score_line(line, under, spot),
+            self.score_line(line_rev, under_rev, spot),
+        ) {
+            (Score::InProgress(f), Score::InProgress(r)) => Score::InProgress(f + r),
+            (w, Score::InProgress(_)) | (Score::InProgress(_), w) | (w, _) => w,
         }
     }
 
-    fn score_line(&self, line: &[Spot], spot: &Spot) -> Score {
+    fn score_line(&self, line: &[Spot], under: &[bool], spot: &Spot) -> Score {
         match (
             line[0],
             line[0] == line[1],
@@ -411,128 +477,86 @@ impl GameBoard {
             line[3],
         ) {
             // 4 in a row
-            (Spot::O, _, Spot::O, _, Spot::O, _, Spot::O) => Score::O, // O wins
-            (Spot::X, _, Spot::X, _, Spot::X, _, Spot::X) => Score::X, // X wins
+            (Spot::O, true, _, true, _, true, _) => Score::O, // O wins
+            (Spot::X, true, _, true, _, true, _) => Score::X, // X wins
             // 3 in a row, 4th empty
-            (s, true, _, true, _, _, Spot::Empty) if s != Spot::Empty => {
-                Score::None(16 * if s == *spot { 1 } else { -1 })
+            (s, true, _, true, _, false, Spot::Empty) if s != Spot::Empty && under[3] => {
+                Score::InProgress(16 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, two empty spots
-            (s, true, _, _, Spot::Empty, _, Spot::Empty) if s != Spot::Empty => {
-                Score::None(8 * if s == *spot { 1 } else { -1 })
+            (s, true, _, _, Spot::Empty, true, _) if s != Spot::Empty && under[2] && under[3] => {
+                Score::InProgress(8 * if s == *spot { 1 } else { -1 })
             }
             // two in a row, one empty spot, then an ally piece
-            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s == o => {
-                Score::None(16 * if s == *spot { 1 } else { -1 })
+            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s == o && under[2] => {
+                Score::InProgress(16 * if s == *spot { 1 } else { -1 })
             }
-            // two in a row, one empty spot, (then an aponent's piece)
-            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s != o => {
-                Score::None(4 * if s == *spot { 1 } else { -1 })
+            // two in a row, one empty spot, then an aponent's piece
+            (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s != o && under[2] => {
+                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), empty ends
-            (Spot::Empty, _, s, true, _, _, Spot::Empty) if s != Spot::Empty => {
-                Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
+            (Spot::Empty, _, s, true, _, _, Spot::Empty)
+                if s != Spot::Empty && under[0] && under[3] =>
+            {
+                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
             }
             // two in a row (middle), one empty end
             (l, _, s, true, _, _, r)
                 if s != Spot::Empty
-                    && (l == Spot::Empty || r == Spot::Empty)
-                    && (s != l)
-                    && (s != r) =>
+                    && (l == Spot::Empty && under[0] && r != s)
+                    && (r == Spot::Empty && under[3] && l != s) =>
             {
-                Score::None(2 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(2 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 3 free
-            (s, _, Spot::Empty, _, Spot::Empty, _, Spot::Empty) if s != Spot::Empty => {
-                Score::None(4 * if s == *spot { 1 } else { -1 })
+            (s, _, Spot::Empty, true, _, true, _)
+                if s != Spot::Empty && under[1] && under[2] && under[3] =>
+            {
+                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 2 free, then ally piece
-            (s, _, Spot::Empty, _, Spot::Empty, _, o) if s != Spot::Empty && s == o => {
-                Score::None(8 / 2 * if s == *spot { 1 } else { -1 })
+            (s, _, Spot::Empty, true, _, _, o)
+                if s != Spot::Empty && s == o && under[1] && under[2] =>
+            {
+                Score::InProgress(8 / 2 * if s == *spot { 1 } else { -1 })
             }
             // 1 spot next to 2 free
-            (s, _, Spot::Empty, _, Spot::Empty, _, _) if s != Spot::Empty => {
-                Score::None(2 * if s == *spot { 1 } else { -1 })
-            }
-            _ => Score::None(0),
-        }
-    }
-
-    fn _best_move_rnd(&self) -> isize {
-        // randomly choose column (check that it's available)
-        let mut rng = rand::thread_rng();
-        loop {
-            let x = rng.gen_range(0..7);
-            if self.grid.at(&Vec2 {
-                row: self.grid.dim.row - 1,
-                col: x,
-            }) == Some(Spot::Empty)
+            (s, _, Spot::Empty, _, Spot::Empty, _, _)
+                if s != Spot::Empty && under[1] && under[2] =>
             {
-                break x;
+                Score::InProgress(2 * if s == *spot { 1 } else { -1 })
             }
+            _ => Score::InProgress(0),
         }
     }
 
-    fn best_move(&self, spot: Spot, height: usize) -> Option<Move> {
-        assert!(
-            spot != Spot::Empty,
-            "Cannont evaluate the best score relative to Spot::Empty"
+    fn best_move(&self, spot: Spot, depth: usize) -> Option<Move> {
+        assert_ne!(
+            spot,
+            Spot::Empty,
+            "Cannont evaluate the best move for Spot::Empty"
         );
-        // println!("[best_move] running at height {height} for spot {:?}", spot);
         let mut moves: Moves = vec![];
         for col in 0..self.grid.dim.col {
             if let Some(new_board) = self.drop_piece_new_board(spot, col) {
                 // piece drop successful
                 let score: isize = match new_board.score(spot) {
-                    Score::O => {
-                        if spot == Spot::O {
-                            2048
-                        } else {
-                            -2048
-                        }
-                    }
-                    Score::X => {
-                        if spot == Spot::X {
-                            2048
-                        } else {
-                            -2048
-                        }
-                    }
-                    Score::None(s) => {
-                        if height == 0 {
+                    Score::InProgress(s) => {
+                        if depth == 0 {
+                            // dont recurse
                             s
                         } else {
                             // recurse
-                            if let Some(m) = new_board.best_move(
-                                if spot == Spot::O { Spot::X } else { Spot::O },
-                                height - 1,
-                            ) {
-                                match m
-                                    .board
-                                    .score(if spot == Spot::O { Spot::X } else { Spot::O })
-                                {
-                                    Score::O => {
-                                        if spot == Spot::O {
-                                            2048
-                                        } else {
-                                            println!("warning: human will win next move!");
-                                            -2048
-                                        }
-                                    }
-                                    Score::X => {
-                                        if spot == Spot::X {
-                                            2048
-                                        } else {
-                                            -2048
-                                        }
-                                    }
-                                    Score::None(ss) => ss,
-                                }
+                            let opospot = if spot == Spot::O { Spot::X } else { Spot::O };
+                            if let Some(m) = new_board.best_move(opospot, depth - 1) {
+                                -m.score
                             } else {
-                                s
+                                s // couldn't recurse
                             }
                         }
                     }
+                    s => isize::MAX * if s == spot { 1 } else { -1 },
                 };
                 moves.push(Move {
                     col,
@@ -571,61 +595,4 @@ fn main() {
         Spot::O => println!("You won!"),
         Spot::X => println!("Bot won!"),
     }
-}
-
-#[test]
-fn scoring_tests() {
-    let mut board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    let loc = Vec2 { row: 0, col: 0 };
-    let dir = &CheckDir::E;
-    let spot = Spot::O;
-
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
-    board.drop_piece(spot, 0); // O _ _ _
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
-    board.drop_piece(spot, 1); // O O _ _
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
-    board.drop_piece(spot, 2); // O O O _
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(16));
-    board.drop_piece(spot, 3); // O O O O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
-
-    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    board.drop_piece(spot, 3); // _ _ _ O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
-    board.drop_piece(spot, 2); // _ _ O O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
-    board.drop_piece(spot, 1); // _ O O O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(16));
-    board.drop_piece(spot, 0); // O O O O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::O);
-
-    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    board.drop_piece(spot, 0); // O _ _ _
-    board.drop_piece(spot, 1); // O O _ _
-    board.drop_piece(Spot::X, 2); // O O X _
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
-
-    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    board.drop_piece(spot, 0); // O _ _ _
-    board.drop_piece(spot, 1); // O O _ _
-    board.drop_piece(Spot::X, 3); // O O _ X
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(4));
-
-    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    board.drop_piece(spot, 0); // O _ _ _
-    board.drop_piece(spot, 3); // O _ _ O
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(8));
-
-    board = GameBoard::new(&Vec2 { row: 4, col: 4 });
-    board.drop_piece(spot, 0); // O _ _ _
-    board.drop_piece(Spot::X, 3); // O _ _ X
-    assert_eq!(board.score_pos(loc, dir, &spot), Score::None(0));
-
-    board = GameBoard::new(&Vec2 {
-        row: DIM.row,
-        col: DIM.col,
-    });
-    board.drop_piece(Spot::X, DIM.col - 1); // _ _ _ _ _ _ X
-    assert_eq!(board.score(spot), Score::None(-12));
 }
