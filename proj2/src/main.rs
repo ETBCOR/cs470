@@ -565,7 +565,6 @@ impl GameBoard {
                 });
             }
         }
-        // println!("Moves vec: {:#?}", moves);
         match moves.iter().max_by_key(|x| x.score) {
             Some(m) => Some(m.clone()),
             None => None,
