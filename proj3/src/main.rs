@@ -6,7 +6,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-const MAX_ITER: usize = 500;
+const MAX_ITER: usize = 1_000_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Color {
@@ -208,7 +208,7 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
             // add neighbors to the queue
             for &nb in self.neighbors(idx) {
                 if !visited[nb] {
-                    println!("\tPushing node {nb}");
+                    // println!("\tPushing node {nb}");
                     visited[nb] = true;
                     queue.push_back(nb);
                 }
@@ -225,6 +225,9 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
 
         let mut itr: usize = 0;
         while !self.is_complete(&vals) {
+            if itr == MAX_ITER {
+                return None;
+            }
             println!(
                 "still incomplete. current num of conflicts: {}\ncurrent vals: {:?}",
                 self.count_confl(&vals),
@@ -255,13 +258,13 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
 }
 
 fn main() {
-    let graph: UndirectedCsrGraph<usize> = GraphWithColoring::from_file("CSPData.csv");
+    let graph: UndirectedCsrGraph<usize> = GraphWithColoring::from_file("CSPData-small.csv");
     println!(
         "Graph read (node count: {}, edge count: {})",
         graph.node_count(),
         graph.edge_count()
     );
-    graph.print_edges();
+    // graph.print_edges();
     let vals = graph.local_search().expect("couldn't complete graph");
     println!("num conflicts: {}", graph.count_confl(&vals));
     println!("complete: {}", graph.is_complete(&vals));
