@@ -237,14 +237,11 @@ impl GameBoard {
     }
 
     fn turn_bot(&mut self) {
-        println!("Bot's move: ");
-
-        // let col = self._best_move_rnd();
         let col = self
             .best_move(Spot::X, MAX_DEPTH)
             .expect("The bot has no valid positions to play!")
             .col;
-
+        println!("Bot's move: {}", col + 1);
         self.drop_piece(Spot::X, col);
         println!("{}", self.as_text());
     }
