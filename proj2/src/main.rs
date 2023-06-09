@@ -19,7 +19,6 @@ struct Area {
 }
 
 const DIM: Vec2 = Vec2 { row: 6, col: 7 };
-// const DIM: Vec2 = Vec2 { row: 4, col: 4 };
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Spot {
@@ -585,7 +584,6 @@ impl Display for GameBoard {
 
 fn main() {
     let mut board = GameBoard::new(&DIM);
-    // let mut board = GameBoard::new(&Vec2 { row: 4, col: 4 });
     match board.play() {
         Spot::Empty => println!("Draw!"),
         Spot::O => println!("You won!"),

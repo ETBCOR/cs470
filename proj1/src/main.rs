@@ -741,7 +741,7 @@ fn a_star_2(map: &Map) {
 }
 
 fn main() {
-    let map = Map::from_file_path("map.txt");
+    let map = Map::from_file_path("data/map.txt");
     println!("The map data has been read successfully:\n{:?}", map);
 
     breadth_first(&map);
