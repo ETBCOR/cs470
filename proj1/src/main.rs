@@ -48,14 +48,14 @@ impl Terrain {
             Self::Hills => 5,
             Self::River => 7,
             Self::Mountians => 10,
-            Self::Water => 0, // unreachable
+            Self::Water => usize::MAX, // shouldn't ever happen
         }
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Status {
-    None,
+    Untraversed,
     Path,
     Up(bool),
     Down(bool),
@@ -193,7 +193,7 @@ impl Map {
             for c in line.chars() {
                 row.push((
                     Terrain::from(&c).expect("Could not parse map character"),
-                    Status::None,
+                    Status::Untraversed,
                 ));
             }
             map.map.push(row);
@@ -229,7 +229,7 @@ impl Map {
                     Terrain::Water => "W",
                 };
                 let s_status = match tile.1 {
-                    Status::None => " ",
+                    Status::Untraversed => " ",
                     Status::Path => "█",        //
                     Status::Up(true) => "▲",    // "⇑",
                     Status::Down(true) => "▼",  // "⇓",
@@ -340,7 +340,7 @@ impl Map {
         }
         let loc = (loc.0, loc.1 - 1);
         if let Some((_, s)) = self.at(loc) {
-            if s == Status::None {
+            if s == Status::Untraversed {
                 return Some(loc);
             }
         }
@@ -350,7 +350,7 @@ impl Map {
     fn go_down(&self, loc: &Vec2) -> Option<Vec2> {
         let loc = (loc.0, loc.1 + 1);
         if let Some((_, s)) = self.at(loc) {
-            if s == Status::None {
+            if s == Status::Untraversed {
                 return Some(loc);
             }
         }
@@ -363,7 +363,7 @@ impl Map {
         }
         let loc = (loc.0 - 1, loc.1);
         if let Some((_, s)) = self.at(loc) {
-            if s == Status::None {
+            if s == Status::Untraversed {
                 return Some(loc);
             }
         }
@@ -373,7 +373,7 @@ impl Map {
     fn go_right(&self, loc: &Vec2) -> Option<Vec2> {
         let loc = (loc.0 + 1, loc.1);
         if let Some((_, s)) = self.at(loc) {
-            if s == Status::None {
+            if s == Status::Untraversed {
                 return Some(loc);
             }
         }
@@ -499,7 +499,7 @@ fn lowest_cost_path(map: &Map) {
         map.at_mut(loc).unwrap().1.deactivate();
 
         // For each valid unvisited neighbor, check if it would have been better to come from here.
-        // if so, update its cost and direction, the add it to the visit queue.
+        // if so, update its cost and direction, then add it to the visit queue.
         for n in map.go_neighbors(&loc).into_iter() {
             if let (Some(loc_new), dir) = n {
                 let maybe_cost = cost + map.at(loc_new).unwrap().0.cost();
@@ -607,7 +607,7 @@ fn greedy_best_first(map: &Map) {
     f.flush().expect("Couldn't flush to file");
 }
 
-fn a_star_1(map: &Map) {
+fn a_star_taxicab(map: &Map) {
     // Variables
     let mut f = File::create("results/a_star_1_results.txt").unwrap();
     let mut done = false;
@@ -673,7 +673,7 @@ fn a_star_1(map: &Map) {
     f.flush().expect("Couldn't flush to file");
 }
 
-fn a_star_2(map: &Map) {
+fn a_star_euclidean(map: &Map) {
     // Variables
     let mut f = File::create("results/a_star_2_results.txt").unwrap();
     let mut done = false;
@@ -747,6 +747,6 @@ fn main() {
     breadth_first(&map);
     lowest_cost_path(&map);
     greedy_best_first(&map);
-    a_star_1(&map);
-    a_star_2(&map);
+    a_star_taxicab(&map);
+    a_star_euclidean(&map);
 }
