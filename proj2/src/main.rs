@@ -125,40 +125,49 @@ impl GameBoard {
         }
     }
 
-    fn play(&mut self) -> Spot {
-        println!("Starting a game of connect 4!\n{}", self.as_text());
-        let max_moves = self.grid.dim.row * self.grid.dim.col;
-        let mut moves = 0;
-        while moves < max_moves {
-            self.turn_human();
-            moves += 1;
-            match self.score(Spot::O) {
-                Score::InProgress(s) => {
-                    println!("Human's current score: {}", s);
+    fn play(&mut self) -> Score {
+        println!("Starting a game of connect 4!");
+        if {
+            loop {
+                println!("Who should go first? (O: human, X: bot)");
+                io::stdout().flush().expect("Couldn't flush stdout");
+                let mut s = String::new();
+                io::stdin().read_line(&mut s).expect("Read error");
+                let s = s.trim().to_uppercase();
+                if s == "O" {
+                    break false;
+                } else if s == "X" {
+                    break true;
+                } else {
+                    println!("Invalid input.");
+                    continue;
                 }
-                Score::O => {
-                    return Spot::O;
-                }
-                Score::X => unreachable!(),
             }
-
-            if moves >= max_moves {
-                break;
-            }
-
+        } {
             self.turn_bot();
-            moves += 1;
-            match self.score(Spot::X) {
-                Score::InProgress(s) => {
-                    println!("Bot's current score: {}", s);
+        } else {
+            println!("{}", self.as_text());
+        }
+        loop {
+            if self.open_spot() {
+                self.turn_human();
+                match self.score() {
+                    Score::InProgress(_) => (),
+                    s => return s,
                 }
-                Score::X => {
-                    return Spot::X;
+            } else {
+                return self.score();
+            }
+            if self.open_spot() {
+                self.turn_bot();
+                match self.score() {
+                    Score::InProgress(_) => (),
+                    s => return s,
                 }
-                Score::O => unreachable!(),
+            } else {
+                return self.score();
             }
         }
-        Spot::Empty
     }
 
     fn as_text(&self) -> String {
@@ -189,6 +198,12 @@ impl GameBoard {
             String::from_iter(std::iter::repeat("▀▀▀▀").take(self.grid.dim.col as usize - 1))
         );
         s
+    }
+
+    fn open_spot(&self) -> bool {
+        self.grid.grid[self.grid.dim.row as usize - 1]
+            .iter()
+            .any(|&x| x == Spot::Empty)
     }
 
     fn turn_human(&mut self) {
