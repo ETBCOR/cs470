@@ -4,7 +4,7 @@ use std::{
     io::{self, Write},
 };
 
-const MAX_DEPTH: usize = 4;
+const MAX_DEPTH: usize = 5;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -152,7 +152,7 @@ impl GameBoard {
             if self.open_spot() {
                 self.turn_human();
                 match self.score() {
-                    Score::InProgress(_) => (),
+                    Score::InProgress(s) => println!("score: {s}"),
                     s => return s,
                 }
             } else {
@@ -161,7 +161,7 @@ impl GameBoard {
             if self.open_spot() {
                 self.turn_bot();
                 match self.score() {
-                    Score::InProgress(_) => (),
+                    Score::InProgress(s) => println!("score: {s}"),
                     s => return s,
                 }
             } else {
@@ -286,10 +286,8 @@ impl GameBoard {
         }
     }
 
-    fn score(&self, spot: Spot) -> Score {
-        assert!(spot != Spot::Empty, "Cannont score for Spot::None");
+    fn score(&self) -> Score {
         let mut score = 0;
-
         let s = self.score_area(
             Area {
                 min: Vec2 { row: 0, col: 0 },
@@ -299,7 +297,6 @@ impl GameBoard {
                 },
             },
             CheckDir::N,
-            spot,
         );
         if let Score::InProgress(s) = s {
             score += s;
@@ -315,7 +312,6 @@ impl GameBoard {
                 },
             },
             CheckDir::E,
-            spot,
         );
         if let Score::InProgress(s) = s {
             score += s;
@@ -331,7 +327,6 @@ impl GameBoard {
                 },
             },
             CheckDir::NE,
-            spot,
         );
         if let Score::InProgress(s) = s {
             score += s;
@@ -347,7 +342,6 @@ impl GameBoard {
                 },
             },
             CheckDir::SE,
-            spot,
         );
         if let Score::InProgress(s) = s {
             score += s;
@@ -357,14 +351,14 @@ impl GameBoard {
         Score::InProgress(score)
     }
 
-    fn score_area(&self, area: Area, dir: CheckDir, spot: Spot) -> Score {
+    fn score_area(&self, area: Area, dir: CheckDir) -> Score {
         let mut score = 0;
         let mut row = area.min.row;
 
         while row <= area.max.row {
             let mut col = area.min.col;
             while col <= area.max.col {
-                let s = self.score_pos(Vec2 { row, col }, &dir, &spot);
+                let s = self.score_pos(Vec2 { row, col }, &dir);
                 if let Score::InProgress(s) = s {
                     score += s;
                 } else {
@@ -377,7 +371,7 @@ impl GameBoard {
         Score::InProgress(score)
     }
 
-    fn score_pos(&self, loc: Vec2, dir: &CheckDir, spot: &Spot) -> Score {
+    fn score_pos(&self, loc: Vec2, dir: &CheckDir) -> Score {
         let row = loc.row as usize;
         let col = loc.col as usize;
         let mut line_vec = Vec::<Spot>::new();
@@ -469,15 +463,15 @@ impl GameBoard {
         let line_rev: &[Spot] = &line_vec_rev[..];
         let under_rev: &[bool] = &under_vec_rev[..];
         match (
-            self.score_line(line, under, spot),
-            self.score_line(line_rev, under_rev, spot),
+            self.score_line(line, under),
+            self.score_line(line_rev, under_rev),
         ) {
             (Score::InProgress(f), Score::InProgress(r)) => Score::InProgress(f + r),
             (w, Score::InProgress(_)) | (Score::InProgress(_), w) | (w, _) => w,
         }
     }
 
-    fn score_line(&self, line: &[Spot], under: &[bool], spot: &Spot) -> Score {
+    fn score_line(&self, line: &[Spot], under: &[bool]) -> Score {
         match (
             line[0],
             line[0] == line[1],
@@ -492,25 +486,25 @@ impl GameBoard {
             (Spot::X, true, _, true, _, true, _) => Score::X, // X wins
             // 3 in a row, 4th empty
             (s, true, _, true, _, false, Spot::Empty) if s != Spot::Empty && under[3] => {
-                Score::InProgress(16 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(16 * if s == Spot::X { 1 } else { -1 })
             }
             // two in a row, two empty spots
             (s, true, _, _, Spot::Empty, true, _) if s != Spot::Empty && under[2] && under[3] => {
-                Score::InProgress(8 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(8 * if s == Spot::X { 1 } else { -1 })
             }
             // two in a row, one empty spot, then an ally piece
             (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s == o && under[2] => {
-                Score::InProgress(16 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(16 * if s == Spot::X { 1 } else { -1 })
             }
             // two in a row, one empty spot, then an aponent's piece
             (s, true, _, _, Spot::Empty, _, o) if s != Spot::Empty && s != o && under[2] => {
-                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(4 * if s == Spot::X { 1 } else { -1 })
             }
             // two in a row (middle), empty ends
             (Spot::Empty, _, s, true, _, _, Spot::Empty)
                 if s != Spot::Empty && under[0] && under[3] =>
             {
-                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(4 * if s == Spot::X { 1 } else { -1 })
             }
             // two in a row (middle), one empty end
             (l, _, s, true, _, _, r)
@@ -518,25 +512,25 @@ impl GameBoard {
                     && (l == Spot::Empty && under[0] && r != s)
                     && (r == Spot::Empty && under[3] && l != s) =>
             {
-                Score::InProgress(2 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(2 * if s == Spot::X { 1 } else { -1 })
             }
             // 1 spot next to 3 free
             (s, _, Spot::Empty, true, _, true, _)
                 if s != Spot::Empty && under[1] && under[2] && under[3] =>
             {
-                Score::InProgress(4 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(4 * if s == Spot::X { 1 } else { -1 })
             }
             // 1 spot next to 2 free, then ally piece
             (s, _, Spot::Empty, true, _, _, o)
                 if s != Spot::Empty && s == o && under[1] && under[2] =>
             {
-                Score::InProgress(8 / 2 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(8 / 2 * if s == Spot::X { 1 } else { -1 })
             }
             // 1 spot next to 2 free
             (s, _, Spot::Empty, _, Spot::Empty, _, _)
                 if s != Spot::Empty && under[1] && under[2] =>
             {
-                Score::InProgress(2 * if s == *spot { 1 } else { -1 })
+                Score::InProgress(2 * if s == Spot::X { 1 } else { -1 })
             }
             _ => Score::InProgress(0),
         }
@@ -552,7 +546,7 @@ impl GameBoard {
         for col in 0..self.grid.dim.col {
             if let Some(new_board) = self.drop_piece_new_board(spot, col) {
                 // piece drop successful
-                let score: isize = match new_board.score(spot) {
+                let score: isize = match new_board.score() {
                     Score::InProgress(s) => {
                         if depth == 0 {
                             // dont recurse
@@ -561,7 +555,7 @@ impl GameBoard {
                             // recurse
                             let opospot = if spot == Spot::O { Spot::X } else { Spot::O };
                             if let Some(m) = new_board.best_move(opospot, depth - 1) {
-                                -m.score
+                                m.score
                             } else {
                                 s // couldn't recurse
                             }
@@ -576,9 +570,16 @@ impl GameBoard {
                 });
             }
         }
-        match moves.iter().max_by_key(|x| x.score) {
-            Some(m) => Some(m.clone()),
-            None => None,
+        if spot == Spot::X {
+            match moves.iter().max_by_key(|x| x.score) {
+                Some(m) => Some(m.clone()),
+                None => None,
+            }
+        } else {
+            match moves.iter().min_by_key(|x| x.score) {
+                Some(m) => Some(m.clone()),
+                None => None,
+            }
         }
     }
 }
@@ -600,8 +601,8 @@ impl Display for GameBoard {
 fn main() {
     let mut board = GameBoard::new(&DIM);
     match board.play() {
-        Spot::Empty => println!("Draw!"),
-        Spot::O => println!("You won!"),
-        Spot::X => println!("Bot won!"),
+        Score::InProgress(_) => println!("Draw!"),
+        Score::O => println!("You won!"),
+        Score::X => println!("Bot won!"),
     }
 }
