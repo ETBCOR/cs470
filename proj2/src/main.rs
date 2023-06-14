@@ -581,9 +581,6 @@ impl GameBoard {
                 });
             }
         }
-        if depth == MAX_DEPTH {
-            println!("moves: {:?}", moves);
-        }
         if spot == Spot::X {
             match moves.iter().max_by(|&x, &y| match x.score.cmp(&y.score) {
                 Less => Less,
