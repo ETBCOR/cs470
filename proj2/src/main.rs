@@ -1,4 +1,3 @@
-use rand::Rng;
 use std::{
     cmp::Ordering::*,
     fmt::{Debug, Display, Formatter, Result},
@@ -108,7 +107,7 @@ struct Move {
     col: isize,
     score: isize,
     depth: usize,
-    board: GameBoard,
+    _board: GameBoard,
 }
 
 type Moves = Vec<Move>;
@@ -154,9 +153,7 @@ impl GameBoard {
             if self.open_spot() {
                 self.turn_human();
                 match self.score() {
-                    Score::InProgress(s) => {
-                        println!("Current score: {}", s);
-                    }
+                    Score::InProgress(_) => (),
                     s => return s,
                 }
             } else {
@@ -166,9 +163,7 @@ impl GameBoard {
             if self.open_spot() {
                 self.turn_bot();
                 match self.score() {
-                    Score::InProgress(s) => {
-                        println!("Current score: {}", s);
-                    }
+                    Score::InProgress(_) => (),
                     s => return s,
                 }
             } else {
@@ -577,7 +572,7 @@ impl GameBoard {
                     col,
                     score,
                     depth: d,
-                    board: new_board,
+                    _board: new_board,
                 });
             }
         }
