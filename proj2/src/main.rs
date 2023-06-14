@@ -571,7 +571,7 @@ impl GameBoard {
                             }
                         }
                     }
-                    s => (isize::MAX * if s == spot { 1 } else { -1 }, depth),
+                    s => (isize::MAX * if s == Spot::X { 1 } else { -1 }, depth),
                 };
                 moves.push(Move {
                     col,
