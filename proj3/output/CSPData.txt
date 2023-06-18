@@ -32,14 +32,14 @@ X29 --> (X1, X4, X5, X9, X14, X17, X18, X25, X30)
 X30 --> (X4, X8, X14, X17, X19, X22, X29)
 
 Starting a local search with two colors.
-Local search with two colors failed (iterations: 2048, num_conflicts: 38)
-Final assignments: {26: G, 12: G, 13: G, 3: R, 20: G, 4: G, 6: R, 7: R, 17: G, 0: R, 29: G, 18: G, 9: R, 19: G, 15: G, 1: R, 23: R, 21: R, 24: R, 10: G, 25: G, 27: G, 22: G, 2: R, 16: R, 14: R, 5: G, 11: G, 28: G, 8: R}
+Local search with two colors failed (iterations: 2048, num_conflicts: 32)
+Final assignments: {26: G, 9: G, 4: G, 28: G, 25: R, 17: G, 3: G, 29: R, 7: R, 15: R, 19: R, 20: G, 27: G, 12: G, 21: G, 1: G, 6: R, 0: G, 24: R, 11: G, 22: R, 14: R, 13: R, 5: R, 8: R, 18: R, 2: R, 23: R, 10: R, 16: R}
 
 Starting a local search with three colors.
-Local search with three colors failed (iterations: 2048, num_conflicts: 13)
-Final assignments: {17: G, 18: R, 19: R, 22: R, 26: B, 24: B, 11: R, 1: B, 21: R, 28: R, 14: G, 2: G, 0: R, 3: G, 12: G, 25: R, 7: G, 8: B, 15: R, 27: R, 23: G, 6: R, 9: R, 5: B, 4: B, 13: B, 20: B, 16: B, 29: B, 10: B}
+Local search with three colors failed (iterations: 2048, num_conflicts: 15)
+Final assignments: {2: B, 4: B, 11: B, 3: B, 0: R, 18: B, 17: G, 12: B, 9: B, 6: G, 1: R, 16: R, 10: B, 27: R, 20: B, 14: G, 21: G, 28: G, 13: G, 29: G, 25: G, 19: G, 24: B, 26: R, 5: B, 15: R, 7: R, 22: G, 8: R, 23: R}
 
 Starting a local search with four colors.
-Local search with four colors completed (iterations: 1008)
-Final assignments: {2: G, 15: G, 25: R, 17: Y, 0: Y, 4: B, 13: R, 3: R, 19: Y, 29: Y, 7: R, 28: G, 18: B, 24: R, 1: R, 20: G, 22: B, 10: G, 14: R, 16: B, 6: B, 26: Y, 5: B, 21: G, 12: Y, 11: G, 23: Y, 27: R, 8: Y, 9: B}
+Local search with four colors completed (iterations: 155)
+Final assignments: {29: B, 5: Y, 26: R, 2: B, 7: G, 9: R, 25: Y, 16: Y, 22: G, 6: Y, 15: R, 11: R, 0: G, 28: R, 14: Y, 20: R, 13: G, 27: R, 24: B, 18: R, 23: Y, 10: B, 17: Y, 3: Y, 4: B, 19: R, 12: G, 1: Y, 21: G, 8: Y}
 
