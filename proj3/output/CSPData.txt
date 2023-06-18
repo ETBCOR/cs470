@@ -1,0 +1,14 @@
+Starting local search for CSPData graph (first with two colors, then three, then four).
+
+Starting a local search with two colors.
+Local search with two colors failed (iterations: 2048, num_conflicts: 33)
+Final assignments: {19: R, 3: R, 12: G, 22: R, 14: R, 27: R, 6: G, 21: R, 16: G, 29: G, 23: G, 5: R, 1: G, 7: G, 10: R, 28: R, 25: R, 0: G, 13: G, 26: G, 15: R, 20: G, 11: G, 8: G, 17: G, 9: R, 24: R, 18: G, 4: R, 2: R}
+
+Starting a local search with three colors.
+Local search with three colors failed (iterations: 2048, num_conflicts: 10)
+Final assignments: {24: R, 25: B, 27: R, 1: B, 6: R, 20: G, 26: B, 22: G, 16: B, 14: B, 13: B, 23: B, 3: G, 18: B, 28: B, 29: R, 7: G, 10: R, 9: B, 15: G, 5: B, 12: G, 21: G, 8: G, 2: G, 0: R, 17: B, 11: R, 19: G, 4: R}
+
+Starting a local search with four colors.
+Local search with four colors completed (iterations: 230)
+Final assignments: {4: Y, 6: R, 23: Y, 25: G, 11: R, 14: B, 24: Y, 1: G, 21: R, 9: R, 3: G, 5: G, 28: R, 22: R, 7: G, 20: Y, 27: Y, 0: Y, 18: R, 8: G, 13: B, 29: Y, 2: B, 17: G, 10: Y, 12: Y, 26: G, 16: B, 15: R, 19: R}
+

@@ -1,14 +1,21 @@
 use graph::prelude::*;
 use rand::{distributions::Standard, prelude::*};
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
+    fmt::{Debug, Display},
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
 };
 
-const MAX_ITER: usize = 1_000_000;
+const MAX_ITER: usize = 2048;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+fn output(string: &str, file: &mut File) {
+    let bytes = string.as_bytes();
+    std::io::stdout().write(bytes).expect("stdio write failed");
+    file.write(bytes).expect("file write failed");
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Color {
     Empty,
     Red,
@@ -16,8 +23,13 @@ enum Color {
     Blue,
     Yellow,
 }
+
 impl Color {
     fn rand_from_choices<R: Rng + ?Sized>(choices: Choices, rng: &mut R) -> Self {
+        assert!(
+            choices.red || choices.green || choices.blue || choices.yellow,
+            "at least one choice must be available in order to pick randomly from them",
+        );
         match vec![choices.red, choices.green, choices.blue, choices.yellow]
             .iter()
             .enumerate()
@@ -34,6 +46,18 @@ impl Color {
     }
 }
 
+impl Debug for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Color::Empty => f.write_str("E"),
+            Color::Red => f.write_str("R"),
+            Color::Green => f.write_str("G"),
+            Color::Blue => f.write_str("B"),
+            Color::Yellow => f.write_str("Y"),
+        }
+    }
+}
+
 impl Distribution<Color> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Color {
         match rng.gen_range(0..4) {
@@ -45,13 +69,23 @@ impl Distribution<Color> for Standard {
     }
 }
 
-type GraphColoring = Vec<Color>;
+type GraphColoring = HashMap<usize, Color>;
 
 #[derive(Clone, Copy, Debug)]
 enum NumColors {
     Two,
     Three,
     Four,
+}
+
+impl Display for NumColors {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NumColors::Two => f.write_str("two colors"),
+            NumColors::Three => f.write_str("three colors"),
+            NumColors::Four => f.write_str("four colors"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -111,12 +145,13 @@ impl MyBufReader for BufReader<File> {
 
 trait GraphWithColoring {
     fn from_file(_: &str) -> Self;
-    fn print_edges(&self);
+    fn print_all_edges(&self);
     fn is_complete(&self, _: &GraphColoring) -> bool;
     fn count_confl(&self, _: &GraphColoring) -> usize;
     fn count_confl_idx(&self, _: usize, _: &GraphColoring) -> usize;
-    fn naive_coloring(&self) -> GraphColoring;
-    fn local_search(&self) -> Option<GraphColoring>;
+    fn naive_coloring(&self, _: NumColors) -> GraphColoring;
+    fn local_search(&self, _: &str) -> GraphColoring;
+    fn local_search_num_colors(&self, _: NumColors, _: &mut File) -> GraphColoring;
 }
 
 impl GraphWithColoring for UndirectedCsrGraph<usize> {
@@ -146,17 +181,23 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
             .build()
     }
 
-    fn print_edges(&self) {
+    fn print_all_edges(&self) {
         println!("Printing graph edges:");
         for n1 in 0..self.node_count() {
-            for n2 in self.neighbors(n1) {
-                println!("n1: {n1}, n2: {n2}")
+            print!("X{} --> (", n1 + 1);
+            for (idx, n2) in self.neighbors(n1).enumerate() {
+                print!(
+                    "X{}{}",
+                    n2 + 1,
+                    if idx < self.degree(n1) - 1 { ", " } else { "" }
+                );
             }
+            println!(")")
         }
     }
 
     fn is_complete(&self, vals: &GraphColoring) -> bool {
-        vals[0] != Color::Empty && self.count_confl(vals) == 0
+        vals[&0] != Color::Empty && self.count_confl(vals) == 0
     }
 
     fn count_confl(&self, vals: &GraphColoring) -> usize {
@@ -170,39 +211,46 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
     fn count_confl_idx(&self, idx: usize, vals: &GraphColoring) -> usize {
         let mut confl_count = 0;
         for &nb in self.neighbors(idx) {
-            if vals[idx] == vals[nb] {
+            if vals[&idx] == vals[&nb] {
                 confl_count += 1;
             }
         }
         confl_count
     }
 
-    fn naive_coloring(&self) -> GraphColoring {
-        // explore the graph
-        let mut vals = vec![Color::Empty; self.node_count()];
-        let mut visited = vec![false; vals.len()];
+    // naively choses a coloring in a DFS manner via proccess of elimination,
+    // or randomness if no valid possition is found for a node
+    fn naive_coloring(&self, num_colors: NumColors) -> GraphColoring {
+        let mut rng = rand::thread_rng();
+        let mut vals = HashMap::new();
+        let mut visited = vec![false; self.node_count()];
         let mut queue = VecDeque::<usize>::new();
+
         queue.push_back(0);
         while let Some(idx) = queue.pop_front() {
-            // println!("{:?}", vals);
-            // println!("{:?}", queue);
+            // println!("{:?}\n{:?}", vals, queue);
 
             // decide color for this node
-            let mut choices = Choices::new(NumColors::Four);
-            for &nb in self.neighbors(idx) {
-                choices.remove(vals[nb]);
+            let mut choices = Choices::new(num_colors);
+            for nb in self.neighbors(idx) {
+                if let Some(&color) = vals.get(nb) {
+                    choices.remove(color);
+                }
             }
-            vals[idx] = if choices.red {
-                Color::Red
-            } else if choices.green {
-                Color::Green
-            } else if choices.blue {
-                Color::Blue
-            } else if choices.yellow {
-                Color::Yellow
-            } else {
-                rand::random()
-            };
+            vals.insert(
+                idx,
+                if choices.red {
+                    Color::Red
+                } else if choices.green {
+                    Color::Green
+                } else if choices.blue {
+                    Color::Blue
+                } else if choices.yellow {
+                    Color::Yellow
+                } else {
+                    Color::rand_from_choices(Choices::new(num_colors), &mut rng)
+                },
+            );
             // println!("Visiting node {idx} (set color to {:?})", vals[idx]);
 
             // add neighbors to the queue
@@ -217,22 +265,47 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
         vals
     }
 
-    fn local_search(&self) -> Option<GraphColoring> {
+    fn local_search(&self, graph_name: &str) -> GraphColoring {
+        let mut f = File::create(format!("output/{graph_name}.txt")).expect("couldn't create file");
+        output(format!("Starting local search for {graph_name} graph (first with two colors, then three, then four).\n\n").as_str(), &mut f);
+        let vals = self.local_search_num_colors(NumColors::Two, &mut f);
+        if self.is_complete(&vals) {
+            return vals;
+        }
+
+        let vals = self.local_search_num_colors(NumColors::Three, &mut f);
+        if self.is_complete(&vals) {
+            return vals;
+        }
+
+        self.local_search_num_colors(NumColors::Four, &mut f)
+    }
+
+    fn local_search_num_colors(&self, num_colors: NumColors, mut f: &mut File) -> GraphColoring {
         let mut rng = rand::thread_rng();
+        output(
+            format!("Starting a local search with {num_colors}.\n").as_str(),
+            &mut f,
+        );
 
         // start with a naive coloring
-        let mut vals = self.naive_coloring();
+        let mut vals = self.naive_coloring(num_colors);
 
         let mut itr: usize = 0;
         while !self.is_complete(&vals) {
-            if itr == MAX_ITER {
-                return None;
+            let num_conflicts = self.count_confl(&vals);
+            if itr >= MAX_ITER {
+                output(
+                    format!(
+                        "Local search with {num_colors} failed (iterations: {itr}, num_conflicts: {num_conflicts})\nFinal assignments: {:?}\n\n",
+                        &vals
+                    ).as_str(),
+                    &mut f
+                );
+                return vals;
             }
-            println!(
-                "still incomplete. current num of conflicts: {}\ncurrent vals: {:?}",
-                self.count_confl(&vals),
-                vals
-            );
+            // output(format!("iteration {}, conflicts: {}\ncurrent vals: {:?}\n", itr, num_conflicts, vals), &mut f);
+
             // traverse the local problem space
             // determine an idx at which to minimize conflicts
             let idx_to_randomize: usize = (0..self.node_count())
@@ -242,30 +315,38 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
                 .expect("couldn't find an idx to randomly change");
 
             // figure out what choices are available at this index
-            let mut choices = Choices::new(NumColors::Four);
-            for &nb in self.neighbors(idx_to_randomize) {
-                choices.remove(vals[nb]);
+            let mut choices = Choices::new(num_colors);
+            for nb in self.neighbors(idx_to_randomize) {
+                if let Some(&color) = vals.get(nb) {
+                    choices.remove(color);
+                }
             }
 
             // randomize the chosen node
-            vals[idx_to_randomize] = Color::rand_from_choices(choices, &mut rng);
+            vals.insert(
+                idx_to_randomize,
+                Color::rand_from_choices(Choices::new(num_colors), &mut rng),
+            );
             itr += 1;
         }
 
-        println!("complete! took {} iterations\nfinal vals: {:?}", itr, &vals);
-        Some(vals)
+        output(
+            format!( "Local search with {num_colors} completed (iterations: {itr})\nFinal assignments: {:?}\n\n", &vals).as_str(),
+            &mut f
+        );
+        vals
     }
 }
 
 fn main() {
-    let graph: UndirectedCsrGraph<usize> = GraphWithColoring::from_file("CSPData-small.csv");
-    println!(
-        "Graph read (node count: {}, edge count: {})",
-        graph.node_count(),
-        graph.edge_count()
-    );
-    // graph.print_edges();
-    let vals = graph.local_search().expect("couldn't complete graph");
-    println!("num conflicts: {}", graph.count_confl(&vals));
-    println!("complete: {}", graph.is_complete(&vals));
+    let graph_bipartite: UndirectedCsrGraph<usize> =
+        GraphWithColoring::from_file("input/bipartite.csv");
+    let graph_needs_three: UndirectedCsrGraph<usize> =
+        GraphWithColoring::from_file("input/needs_three.csv");
+    let graph_assignment: UndirectedCsrGraph<usize> =
+        GraphWithColoring::from_file("input/CSPData.csv");
+
+    _ = graph_bipartite.local_search("bipartite");
+    _ = graph_needs_three.local_search("needs_three");
+    _ = graph_assignment.local_search("CSPData");
 }

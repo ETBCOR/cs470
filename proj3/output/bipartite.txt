@@ -1,0 +1,6 @@
+Starting local search for bipartite graph (first with two colors, then three, then four).
+
+Starting a local search with two colors.
+Local search with two colors completed (iterations: 0)
+Final assignments: {1: G, 9: G, 4: R, 2: R, 8: R, 3: G, 5: G, 6: R, 7: G, 0: R}
+
