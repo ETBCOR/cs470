@@ -145,7 +145,7 @@ impl MyBufReader for BufReader<File> {
 
 trait GraphWithColoring {
     fn from_file(_: &str) -> Self;
-    fn print_all_edges(&self);
+    fn all_edges_text(&self) -> String;
     fn is_complete(&self, _: &GraphColoring) -> bool;
     fn count_confl(&self, _: &GraphColoring) -> usize;
     fn count_confl_idx(&self, _: usize, _: &GraphColoring) -> usize;
@@ -181,19 +181,21 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
             .build()
     }
 
-    fn print_all_edges(&self) {
-        println!("Printing graph edges:");
+    fn all_edges_text(&self) -> String {
+        let mut s = String::new();
         for n1 in 0..self.node_count() {
-            print!("X{} --> (", n1 + 1);
+            s += format!("X{} --> (", n1 + 1).as_str();
             for (idx, n2) in self.neighbors(n1).enumerate() {
-                print!(
+                s += format!(
                     "X{}{}",
                     n2 + 1,
                     if idx < self.degree(n1) - 1 { ", " } else { "" }
-                );
+                )
+                .as_str();
             }
-            println!(")")
+            s += ")\n";
         }
+        s
     }
 
     fn is_complete(&self, vals: &GraphColoring) -> bool {
@@ -267,7 +269,7 @@ impl GraphWithColoring for UndirectedCsrGraph<usize> {
 
     fn local_search(&self, graph_name: &str) -> GraphColoring {
         let mut f = File::create(format!("output/{graph_name}.txt")).expect("couldn't create file");
-        output(format!("Starting local search for {graph_name} graph (first with two colors, then three, then four).\n\n").as_str(), &mut f);
+        output(format!("Starting local search for {graph_name} graph (first with two colors, then three, then four).\nGraph:\n{}\n", self.all_edges_text()).as_str(), &mut f);
         let vals = self.local_search_num_colors(NumColors::Two, &mut f);
         if self.is_complete(&vals) {
             return vals;

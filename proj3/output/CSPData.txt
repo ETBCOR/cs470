@@ -1,14 +1,45 @@
 Starting local search for CSPData graph (first with two colors, then three, then four).
+Graph:
+X1 --> (X2, X3, X15, X29)
+X2 --> (X1, X21, X22)
+X3 --> (X1, X7, X10, X18, X19, X24, X28)
+X4 --> (X22, X29, X30)
+X5 --> (X14, X15, X27, X29)
+X6 --> (X12, X20, X22, X28)
+X7 --> (X3, X8, X27)
+X8 --> (X7, X10, X11, X17, X19, X30)
+X9 --> (X10, X11, X23, X29)
+X10 --> (X3, X8, X9, X11, X24)
+X11 --> (X8, X9, X10, X14, X17, X18, X23)
+X12 --> (X6, X13, X14, X24)
+X13 --> (X12, X15, X26)
+X14 --> (X5, X11, X12, X18, X24, X29, X30)
+X15 --> (X1, X5, X13, X22, X23, X27)
+X16 --> (X25)
+X17 --> (X8, X11, X29, X30)
+X18 --> (X3, X11, X14, X21, X25, X29)
+X19 --> (X3, X8, X30)
+X20 --> (X6)
+X21 --> (X2, X18, X23, X26)
+X22 --> (X2, X4, X6, X15, X24, X25, X27, X30)
+X23 --> (X9, X11, X15, X21, X28)
+X24 --> (X3, X10, X12, X14, X22)
+X25 --> (X16, X18, X22, X29)
+X26 --> (X13, X21)
+X27 --> (X5, X7, X15, X22)
+X28 --> (X3, X6, X23)
+X29 --> (X1, X4, X5, X9, X14, X17, X18, X25, X30)
+X30 --> (X4, X8, X14, X17, X19, X22, X29)
 
 Starting a local search with two colors.
-Local search with two colors failed (iterations: 2048, num_conflicts: 33)
-Final assignments: {19: R, 3: R, 12: G, 22: R, 14: R, 27: R, 6: G, 21: R, 16: G, 29: G, 23: G, 5: R, 1: G, 7: G, 10: R, 28: R, 25: R, 0: G, 13: G, 26: G, 15: R, 20: G, 11: G, 8: G, 17: G, 9: R, 24: R, 18: G, 4: R, 2: R}
+Local search with two colors failed (iterations: 2048, num_conflicts: 38)
+Final assignments: {26: G, 12: G, 13: G, 3: R, 20: G, 4: G, 6: R, 7: R, 17: G, 0: R, 29: G, 18: G, 9: R, 19: G, 15: G, 1: R, 23: R, 21: R, 24: R, 10: G, 25: G, 27: G, 22: G, 2: R, 16: R, 14: R, 5: G, 11: G, 28: G, 8: R}
 
 Starting a local search with three colors.
-Local search with three colors failed (iterations: 2048, num_conflicts: 10)
-Final assignments: {24: R, 25: B, 27: R, 1: B, 6: R, 20: G, 26: B, 22: G, 16: B, 14: B, 13: B, 23: B, 3: G, 18: B, 28: B, 29: R, 7: G, 10: R, 9: B, 15: G, 5: B, 12: G, 21: G, 8: G, 2: G, 0: R, 17: B, 11: R, 19: G, 4: R}
+Local search with three colors failed (iterations: 2048, num_conflicts: 13)
+Final assignments: {17: G, 18: R, 19: R, 22: R, 26: B, 24: B, 11: R, 1: B, 21: R, 28: R, 14: G, 2: G, 0: R, 3: G, 12: G, 25: R, 7: G, 8: B, 15: R, 27: R, 23: G, 6: R, 9: R, 5: B, 4: B, 13: B, 20: B, 16: B, 29: B, 10: B}
 
 Starting a local search with four colors.
-Local search with four colors completed (iterations: 230)
-Final assignments: {4: Y, 6: R, 23: Y, 25: G, 11: R, 14: B, 24: Y, 1: G, 21: R, 9: R, 3: G, 5: G, 28: R, 22: R, 7: G, 20: Y, 27: Y, 0: Y, 18: R, 8: G, 13: B, 29: Y, 2: B, 17: G, 10: Y, 12: Y, 26: G, 16: B, 15: R, 19: R}
+Local search with four colors completed (iterations: 1008)
+Final assignments: {2: G, 15: G, 25: R, 17: Y, 0: Y, 4: B, 13: R, 3: R, 19: Y, 29: Y, 7: R, 28: G, 18: B, 24: R, 1: R, 20: G, 22: B, 10: G, 14: R, 16: B, 6: B, 26: Y, 5: B, 21: G, 12: Y, 11: G, 23: Y, 27: R, 8: Y, 9: B}
 
