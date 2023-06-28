@@ -1,0 +1,42 @@
+Starting depth first search for CSPData graph (first with two colors, then three, then four).
+Graph:
+X1 --> (X2, X3, X15, X29)
+X2 --> (X1, X21, X22)
+X3 --> (X1, X7, X10, X18, X19, X24, X28)
+X4 --> (X22, X29, X30)
+X5 --> (X14, X15, X27, X29)
+X6 --> (X12, X20, X22, X28)
+X7 --> (X3, X8, X27)
+X8 --> (X7, X10, X11, X17, X19, X30)
+X9 --> (X10, X11, X23, X29)
+X10 --> (X3, X8, X9, X11, X24)
+X11 --> (X8, X9, X10, X14, X17, X18, X23)
+X12 --> (X6, X13, X14, X24)
+X13 --> (X12, X15, X26)
+X14 --> (X5, X11, X12, X18, X24, X29, X30)
+X15 --> (X1, X5, X13, X22, X23, X27)
+X16 --> (X25)
+X17 --> (X8, X11, X29, X30)
+X18 --> (X3, X11, X14, X21, X25, X29)
+X19 --> (X3, X8, X30)
+X20 --> (X6)
+X21 --> (X2, X18, X23, X26)
+X22 --> (X2, X4, X6, X15, X24, X25, X27, X30)
+X23 --> (X9, X11, X15, X21, X28)
+X24 --> (X3, X10, X12, X14, X22)
+X25 --> (X16, X18, X22, X29)
+X26 --> (X13, X21)
+X27 --> (X5, X7, X15, X22)
+X28 --> (X3, X6, X23)
+X29 --> (X1, X4, X5, X9, X14, X17, X18, X25, X30)
+X30 --> (X4, X8, X14, X17, X19, X22, X29)
+
+Starting a depth first search with two colors... failed
+Final assignments: {6: G, 2: R, 9: G, 7: R, 1: R, 0: G}
+
+Starting a depth first search with three colors... failed
+Final assignments: {27: R, 11: B, 6: B, 10: R, 7: G, 22: B, 9: B, 13: G, 21: B, 2: G, 1: G, 28: R, 8: G, 17: B, 20: R, 23: R, 0: B, 5: G, 16: B}
+
+Starting a depth first search with four colors... completed
+Final assignments: {23: G, 27: G, 25: Y, 8: B, 11: Y, 26: G, 2: B, 9: Y, 12: G, 19: Y, 1: B, 16: Y, 4: Y, 13: B, 14: B, 15: Y, 6: Y, 3: B, 5: B, 10: G, 17: Y, 18: Y, 20: G, 29: R, 0: Y, 21: Y, 28: G, 24: B, 7: B, 22: Y}
+

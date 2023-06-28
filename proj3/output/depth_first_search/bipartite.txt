@@ -1,0 +1,16 @@
+Starting depth first search for bipartite graph (first with two colors, then three, then four).
+Graph:
+X1 --> (X2, X4, X6, X8, X10)
+X2 --> (X1, X3, X5, X7, X9)
+X3 --> (X2, X4, X6, X8, X10)
+X4 --> (X1, X3, X5, X7, X9)
+X5 --> (X2, X4, X6, X8, X10)
+X6 --> (X1, X3, X5, X7, X9)
+X7 --> (X2, X4, X6, X8, X10)
+X8 --> (X1, X3, X5, X7, X9)
+X9 --> (X2, X4, X6, X8, X10)
+X10 --> (X1, X3, X5, X7, X9)
+
+Starting a depth first search with two colors... completed
+Final assignments: {5: R, 9: R, 0: G, 6: G, 1: R, 2: G, 4: G, 7: R, 8: G, 3: R}
+

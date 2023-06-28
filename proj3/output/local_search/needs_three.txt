@@ -1,0 +1,12 @@
+Starting local search for needs_three graph (first with two colors, then three, then four).
+Graph:
+X1 --> (X2, X3)
+X2 --> (X1, X3)
+X3 --> (X1, X2)
+
+Starting a local search with two colors... failed with 1 conflicts (iterations: 2048)
+Final assignments: {2: G, 1: G, 0: R}
+
+Starting a local search with three colors... completed (iterations: 0)
+Final assignments: {2: B, 0: R, 1: G}
+
