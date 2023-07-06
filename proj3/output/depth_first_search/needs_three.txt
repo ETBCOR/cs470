@@ -5,8 +5,12 @@ X2 --> (X1, X3)
 X3 --> (X1, X2)
 
 Starting a depth first search with two colors... failed
-Final assignments: {1: R, 0: G}
+Final coloring: {0: G, 1: R}
 
 Starting a depth first search with three colors... completed
-Final assignments: {0: B, 1: G, 2: R}
+Final coloring: {
+    2: R,
+    0: B,
+    1: G,
+}
 

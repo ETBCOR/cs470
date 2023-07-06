@@ -12,5 +12,16 @@ X9 --> (X2, X4, X6, X8, X10)
 X10 --> (X1, X3, X5, X7, X9)
 
 Starting a local search with two colors... completed (iterations: 0)
-Final assignments: {2: R, 4: R, 9: G, 7: G, 0: R, 3: G, 8: R, 6: R, 1: G, 5: G}
+Final coloring: {
+    8: R,
+    2: R,
+    7: G,
+    6: R,
+    5: G,
+    9: G,
+    1: G,
+    0: R,
+    4: R,
+    3: G,
+}
 

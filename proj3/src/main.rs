@@ -255,7 +255,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
     // or via randomness if no valid possition is found for that variable.
     fn naive_coloring(&self, num_colors: NumColors) -> GraphColoring {
         let mut rng = rand::thread_rng();
-        let mut assignments = HashMap::new();
+        let mut coloring = HashMap::new();
         let mut visited = vec![false; self.node_count()];
         let mut queue = VecDeque::<usize>::new();
 
@@ -265,13 +265,13 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             // decide color for this variable
             let mut choices = Choices::new(num_colors);
             for nb in self.neighbors(idx) {
-                if let Some(&color) = assignments.get(nb) {
+                if let Some(&color) = coloring.get(nb) {
                     choices.remove(color);
                 }
             }
 
             // add it
-            assignments.insert(
+            coloring.insert(
                 idx,
                 if choices.red {
                     Color::Red
@@ -294,7 +294,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                 }
             }
         }
-        assignments
+        coloring
     }
 
     // wrapper for local_search that handles trying with 2 then 3 then 4 colors
@@ -350,37 +350,37 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
         );
 
         // start with a naive coloring
-        let mut assignments = self.naive_coloring(num_colors);
+        let mut coloring = self.naive_coloring(num_colors);
 
         let mut itr: usize = 0;
-        while !self.is_complete(&assignments) {
-            let num_conflicts = self.count_confl(&assignments);
+        while !self.is_complete(&coloring) {
+            let num_conflicts = self.count_confl(&coloring);
 
             if itr >= MAX_ITER {
                 output(
-                    format!(" failed with {num_conflicts} conflicts (iterations: {itr})\nFinal assignments: {:?}\n\n", &assignments).as_str(),
+                    format!(" failed with {num_conflicts} conflicts (iterations: {itr})\nFinal coloring: {:?}\n\n", &coloring).as_str(),
                     &mut f
                 );
-                return assignments;
+                return coloring;
             }
 
             // determine an idx at which to minimize conflicts
             let idx_to_randomize: usize = (0..self.node_count())
                 .into_iter()
-                .filter(|&idx| self.count_confl_idx(idx, &assignments) > 0)
+                .filter(|&idx| self.count_confl_idx(idx, &coloring) > 0)
                 .choose_stable(&mut rng)
                 .expect("couldn't find an idx to randomly change");
 
             // figure out what choices are available at this index
             let mut choices = Choices::new(num_colors);
             for nb in self.neighbors(idx_to_randomize) {
-                if let Some(&color) = assignments.get(nb) {
+                if let Some(&color) = coloring.get(nb) {
                     choices.remove(color);
                 }
             }
 
             // randomize the chosen variable
-            assignments.insert(
+            coloring.insert(
                 idx_to_randomize,
                 Color::rand_from_choices(
                     if choices.stuck() {
@@ -396,13 +396,13 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
         output(
             format!(
-                " completed (iterations: {itr})\nFinal assignments: {:?}\n\n",
-                &assignments
+                " completed (iterations: {itr})\nFinal coloring: {:#?}\n\n",
+                &coloring
             )
             .as_str(),
             &mut f,
         );
-        assignments
+        coloring
     }
 
     // starts with a blank coloring, then fills in the graph in a depth-first manner.
@@ -413,14 +413,14 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             format!("Starting a depth first search with {num_colors}...").as_str(),
             &mut f,
         );
-        let mut assignments = GraphColoring::new();
+        let mut coloring = GraphColoring::new();
         let mut choices_vec = vec![Choices::new(num_colors); self.node_count()];
 
-        while !self.is_complete(&assignments) {
+        while !self.is_complete(&coloring) {
             // choose the remaining variable with the least legal values
             let idx_to_assign: usize = (0..self.node_count())
                 .into_iter()
-                .filter(|x| !assignments.contains_key(x))
+                .filter(|x| !coloring.contains_key(x))
                 .map(|x| (x, choices_vec[x]))
                 .min_by(|(_, x), (_, y)| x.amount().cmp(&y.amount()))
                 .unwrap()
@@ -429,10 +429,10 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             if choices_vec[idx_to_assign].stuck() {
                 // failed
                 output(
-                    format!(" failed\nFinal assignments: {:?}\n\n", assignments).as_str(),
+                    format!(" failed\nFinal coloring: {:?}\n\n", coloring).as_str(),
                     &mut f,
                 );
-                return assignments;
+                return coloring;
             }
 
             // choose the color that restricts the other variables the least
@@ -457,17 +457,17 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                 .1;
 
             // commit to the color assignment that was chosen
-            assignments.insert(idx_to_assign, color_choice);
+            coloring.insert(idx_to_assign, color_choice);
             for &nb in self.neighbors(idx_to_assign) {
                 choices_vec[nb].remove(color_choice);
             }
         }
 
         output(
-            format!(" completed\nFinal assignments: {:?}\n\n", assignments).as_str(),
+            format!(" completed\nFinal coloring: {:#?}\n\n", coloring).as_str(),
             &mut f,
         );
-        assignments
+        coloring
     }
 }
 
