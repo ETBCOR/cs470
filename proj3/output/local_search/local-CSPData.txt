@@ -32,43 +32,43 @@ X29 --> [ X01 | X04 | X05 | X09 | X14 | X17 | X18 | X25 | X30 ]
 X30 --> [ X04 | X08 | X14 | X17 | X19 | X22 | X29 ]
 
 Starting a local search with two colors... failed with 30 conflicts (iterations: 2048)
-Final coloring: {0: G, 1: G, 2: G, 3: R, 4: G, 5: R, 6: R, 7: G, 8: R, 9: G, 10: G, 11: R, 12: G, 13: R, 14: R, 15: R, 16: G, 17: R, 18: R, 19: G, 20: G, 21: R, 22: G, 23: G, 24: G, 25: R, 26: R, 27: R, 28: G, 29: G}
+Final coloring: {0: G, 1: G, 2: G, 3: R, 4: R, 5: R, 6: R, 7: R, 8: G, 9: R, 10: G, 11: R, 12: G, 13: G, 14: R, 15: R, 16: R, 17: R, 18: G, 19: G, 20: R, 21: G, 22: R, 23: G, 24: G, 25: R, 26: R, 27: G, 28: G, 29: R}
 
-Starting a local search with three colors... failed with 10 conflicts (iterations: 2048)
-Final coloring: {0: G, 1: B, 2: R, 3: R, 4: R, 5: R, 6: B, 7: R, 8: B, 9: G, 10: B, 11: B, 12: G, 13: G, 14: B, 15: G, 16: R, 17: B, 18: B, 19: B, 20: R, 21: B, 22: G, 23: R, 24: R, 25: R, 26: G, 27: B, 28: B, 29: G}
+Starting a local search with three colors... failed with 15 conflicts (iterations: 2048)
+Final coloring: {0: B, 1: R, 2: R, 3: R, 4: B, 5: B, 6: B, 7: G, 8: B, 9: R, 10: R, 11: B, 12: G, 13: G, 14: B, 15: G, 16: B, 17: B, 18: B, 19: R, 20: G, 21: B, 22: G, 23: B, 24: R, 25: R, 26: R, 27: G, 28: G, 29: G}
 
-Starting a local search with four colors... completed (iterations: 152)
-Final coloring: {0: Y, 1: G, 2: R, 3: G, 4: Y, 5: G, 6: Y, 7: B, 8: Y, 9: G, 10: R, 11: Y, 12: B, 13: G, 14: R, 15: R, 16: Y, 17: Y, 18: G, 19: R, 20: R, 21: Y, 22: B, 23: B, 24: G, 25: G, 26: G, 27: Y, 28: B, 29: R}
+Starting a local search with four colors... completed (iterations: 11)
+Final coloring: {0: R, 1: G, 2: G, 3: B, 4: R, 5: G, 6: R, 7: B, 8: Y, 9: R, 10: G, 11: R, 12: Y, 13: Y, 14: G, 15: B, 16: Y, 17: B, 18: Y, 19: R, 20: R, 21: Y, 22: B, 23: B, 24: R, 25: G, 26: B, 27: R, 28: G, 29: R}
 Detailed graph:
-X01: Y --> [ X02: G | X03: R | X15: R | X29: B ]
-X02: G --> [ X01: Y | X21: R | X22: Y ]
-X03: R --> [ X01: Y | X07: Y | X10: G | X18: Y | X19: G | X24: B | X28: Y ]
-X04: G --> [ X22: Y | X29: B | X30: R ]
-X05: Y --> [ X14: G | X15: R | X27: G | X29: B ]
-X06: G --> [ X12: Y | X20: R | X22: Y | X28: Y ]
-X07: Y --> [ X03: R | X08: B | X27: G ]
-X08: B --> [ X07: Y | X10: G | X11: R | X17: Y | X19: G | X30: R ]
-X09: Y --> [ X10: G | X11: R | X23: B | X29: B ]
-X10: G --> [ X03: R | X08: B | X09: Y | X11: R | X24: B ]
-X11: R --> [ X08: B | X09: Y | X10: G | X14: G | X17: Y | X18: Y | X23: B ]
-X12: Y --> [ X06: G | X13: B | X14: G | X24: B ]
-X13: B --> [ X12: Y | X15: R | X26: G ]
-X14: G --> [ X05: Y | X11: R | X12: Y | X18: Y | X24: B | X29: B | X30: R ]
-X15: R --> [ X01: Y | X05: Y | X13: B | X22: Y | X23: B | X27: G ]
-X16: R --> [ X25: G ]
-X17: Y --> [ X08: B | X11: R | X29: B | X30: R ]
-X18: Y --> [ X03: R | X11: R | X14: G | X21: R | X25: G | X29: B ]
-X19: G --> [ X03: R | X08: B | X30: R ]
+X01: R --> [ X02: G | X03: G | X15: G | X29: G ]
+X02: G --> [ X01: R | X21: R | X22: Y ]
+X03: G --> [ X01: R | X07: R | X10: R | X18: B | X19: Y | X24: B | X28: R ]
+X04: B --> [ X22: Y | X29: G | X30: R ]
+X05: R --> [ X14: Y | X15: G | X27: B | X29: G ]
+X06: G --> [ X12: R | X20: R | X22: Y | X28: R ]
+X07: R --> [ X03: G | X08: B | X27: B ]
+X08: B --> [ X07: R | X10: R | X11: G | X17: Y | X19: Y | X30: R ]
+X09: Y --> [ X10: R | X11: G | X23: B | X29: G ]
+X10: R --> [ X03: G | X08: B | X09: Y | X11: G | X24: B ]
+X11: G --> [ X08: B | X09: Y | X10: R | X14: Y | X17: Y | X18: B | X23: B ]
+X12: R --> [ X06: G | X13: Y | X14: Y | X24: B ]
+X13: Y --> [ X12: R | X15: G | X26: G ]
+X14: Y --> [ X05: R | X11: G | X12: R | X18: B | X24: B | X29: G | X30: R ]
+X15: G --> [ X01: R | X05: R | X13: Y | X22: Y | X23: B | X27: B ]
+X16: B --> [ X25: R ]
+X17: Y --> [ X08: B | X11: G | X29: G | X30: R ]
+X18: B --> [ X03: G | X11: G | X14: Y | X21: R | X25: R | X29: G ]
+X19: Y --> [ X03: G | X08: B | X30: R ]
 X20: R --> [ X06: G ]
-X21: R --> [ X02: G | X18: Y | X23: B | X26: G ]
-X22: Y --> [ X02: G | X04: G | X06: G | X15: R | X24: B | X25: G | X27: G | X30: R ]
-X23: B --> [ X09: Y | X11: R | X15: R | X21: R | X28: Y ]
-X24: B --> [ X03: R | X10: G | X12: Y | X14: G | X22: Y ]
-X25: G --> [ X16: R | X18: Y | X22: Y | X29: B ]
-X26: G --> [ X13: B | X21: R ]
-X27: G --> [ X05: Y | X07: Y | X15: R | X22: Y ]
-X28: Y --> [ X03: R | X06: G | X23: B ]
-X29: B --> [ X01: Y | X04: G | X05: Y | X09: Y | X14: G | X17: Y | X18: Y | X25: G | X30: R ]
-X30: R --> [ X04: G | X08: B | X14: G | X17: Y | X19: G | X22: Y | X29: B ]
+X21: R --> [ X02: G | X18: B | X23: B | X26: G ]
+X22: Y --> [ X02: G | X04: B | X06: G | X15: G | X24: B | X25: R | X27: B | X30: R ]
+X23: B --> [ X09: Y | X11: G | X15: G | X21: R | X28: R ]
+X24: B --> [ X03: G | X10: R | X12: R | X14: Y | X22: Y ]
+X25: R --> [ X16: B | X18: B | X22: Y | X29: G ]
+X26: G --> [ X13: Y | X21: R ]
+X27: B --> [ X05: R | X07: R | X15: G | X22: Y ]
+X28: R --> [ X03: G | X06: G | X23: B ]
+X29: G --> [ X01: R | X04: B | X05: R | X09: Y | X14: Y | X17: Y | X18: B | X25: R | X30: R ]
+X30: R --> [ X04: B | X08: B | X14: Y | X17: Y | X19: Y | X22: Y | X29: G ]
 
 

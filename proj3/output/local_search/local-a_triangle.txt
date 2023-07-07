@@ -1,11 +1,11 @@
-Starting local search for needs_three graph (first with two colors, then three, then four).
+Starting local search for a_triangle graph (first with two colors, then three, then four).
 Graph:
 X01 --> [ X02 | X03 ]
 X02 --> [ X01 | X03 ]
 X03 --> [ X01 | X02 ]
 
 Starting a local search with two colors... failed with 1 conflicts (iterations: 2048)
-Final coloring: {0: G, 1: R, 2: R}
+Final coloring: {0: G, 1: G, 2: R}
 
 Starting a local search with three colors... completed (iterations: 0)
 Final coloring: {0: R, 1: G, 2: B}

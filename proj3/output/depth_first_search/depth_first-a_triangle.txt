@@ -1,4 +1,4 @@
-Starting depth first search for needs_three graph (first with two colors, then three, then four).
+Starting depth first search for a_triangle graph (first with two colors, then three, then four).
 Graph:
 X01 --> [ X02 | X03 ]
 X02 --> [ X01 | X03 ]
