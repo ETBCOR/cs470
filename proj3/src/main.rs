@@ -209,12 +209,16 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
     fn all_edges_text(&self) -> String {
         let mut s = String::new();
         for n1 in 0..self.node_count() {
-            s += format!("X{} --> (", n1 + 1).as_str();
+            s += format!("X{:02} --> [ ", n1 + 1).as_str();
             for (i, n2) in self.neighbors(n1).enumerate() {
                 s += format!(
-                    "X{}{}",
+                    "X{:02}{}",
                     n2 + 1,
-                    if i < self.degree(n1) - 1 { ", " } else { ")\n" }
+                    if i < self.degree(n1) - 1 {
+                        " | "
+                    } else {
+                        " ]\n"
+                    }
                 )
                 .as_str();
             }
@@ -227,17 +231,21 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
         let mut s = String::new();
         for n1 in 0..self.node_count() {
             s += format!(
-                "X{index}: {color:?} --> (",
+                "X{index:02}: {color:?} --> [ ",
                 index = n1 + 1,
                 color = coloring.get(&n1).unwrap_or(&Color::Empty)
             )
             .as_str();
             for (i, n2) in self.neighbors(n1).enumerate() {
                 s += format!(
-                    "X{index}: {color:?}{comma}",
+                    "X{index:02}: {color:?}{comma}",
                     index = n2 + 1,
                     color = coloring.get(&n2).unwrap_or(&Color::Empty),
-                    comma = if i < self.degree(n1) - 1 { ", " } else { ")\n" }
+                    comma = if i < self.degree(n1) - 1 {
+                        " | "
+                    } else {
+                        " ]\n"
+                    }
                 )
                 .as_str();
             }
@@ -322,7 +330,8 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
     // wrapper for local_search that handles trying with 2 then 3 then 4 colors
     fn local_search_itr(&self, graph_name: &str) -> GraphColoring {
-        let mut f = File::create(format!("output/local_search/{graph_name}.txt")).unwrap();
+        let mut f = File::create(format!("output/local_search/local-{graph_name}.txt"))
+            .expect("couldn't create file");
         output(format!("Starting local search for {graph_name} graph (first with two colors, then three, then four).\nGraph:\n{}\n", self.all_edges_text()).as_str(), &mut f);
 
         // try with 2 colors allowed
@@ -343,8 +352,10 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
     // wrapper for depth_first_search that handles trying with 2 then 3 then 4 colors
     fn depth_first_search_itr(&self, graph_name: &str) -> GraphColoring {
-        let mut f = File::create(format!("output/depth_first_search/{graph_name}.txt"))
-            .expect("couldn't create file");
+        let mut f = File::create(format!(
+            "output/depth_first_search/depth_first-{graph_name}.txt"
+        ))
+        .expect("couldn't create file");
         output(format!("Starting depth first search for {graph_name} graph (first with two colors, then three, then four).\nGraph:\n{}\n", self.all_edges_text()).as_str(), &mut f);
 
         // try with 2 colors allowed

@@ -1,8 +1,8 @@
 Starting depth first search for needs_three graph (first with two colors, then three, then four).
 Graph:
-X1 --> (X2, X3)
-X2 --> (X1, X3)
-X3 --> (X1, X2)
+X01 --> [ X02 | X03 ]
+X02 --> [ X01 | X03 ]
+X03 --> [ X01 | X02 ]
 
 Starting a depth first search with two colors... failed
 Final coloring: {0: G, 1: R}
@@ -10,8 +10,8 @@ Final coloring: {0: G, 1: R}
 Starting a depth first search with three colors... completed
 Final coloring: {0: B, 1: G, 2: R}
 Detailed graph:
-X1: B --> (X2: G, X3: R)
-X2: G --> (X1: B, X3: R)
-X3: R --> (X1: B, X2: G)
+X01: B --> [ X02: G | X03: R ]
+X02: G --> [ X01: B | X03: R ]
+X03: R --> [ X01: B | X02: G ]
 
 

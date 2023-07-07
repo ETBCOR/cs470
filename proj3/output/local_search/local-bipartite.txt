@@ -1,0 +1,16 @@
+Starting local search for bipartite graph (first with two colors, then three, then four).
+Graph:
+X01 --> [ X02 | X04 ]
+X02 --> [ X01 | X03 ]
+X03 --> [ X02 | X04 ]
+X04 --> [ X01 | X03 ]
+
+Starting a local search with two colors... completed (iterations: 0)
+Final coloring: {0: R, 1: G, 2: R, 3: G}
+Detailed graph:
+X01: R --> [ X02: G | X04: G ]
+X02: G --> [ X01: R | X03: R ]
+X03: R --> [ X02: G | X04: G ]
+X04: G --> [ X01: R | X03: R ]
+
+
