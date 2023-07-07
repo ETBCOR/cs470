@@ -399,7 +399,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             }
 
             // determine an idx at which to minimize conflicts
-            let idx_to_randomize: usize = (0..self.node_count())
+            let idx_decision: usize = (0..self.node_count())
                 .into_iter()
                 .filter(|&idx| self.count_confl_idx(idx, &coloring) > 0)
                 .choose_stable(&mut rng)
@@ -407,7 +407,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
             // figure out what choices are available at this index
             let mut choices = Choices::new(num_colors);
-            for nb in self.neighbors(idx_to_randomize) {
+            for nb in self.neighbors(idx_decision) {
                 if let Some(&color) = coloring.get(nb) {
                     choices.remove(color);
                 }
@@ -415,7 +415,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
             // randomize the chosen variable
             coloring.insert(
-                idx_to_randomize,
+                idx_decision,
                 Color::rand_from_choices(
                     if choices.stuck() {
                         Choices::new(num_colors)
@@ -453,7 +453,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
         while !self.is_complete(&coloring) {
             // choose the remaining variable with the least legal values
-            let idx_to_assign: usize = (0..self.node_count())
+            let idx_decision: usize = (0..self.node_count())
                 .into_iter()
                 .filter(|x| !coloring.contains_key(x))
                 .map(|x| (x, choices_vec[x]))
@@ -461,7 +461,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                 .unwrap()
                 .0;
 
-            if choices_vec[idx_to_assign].stuck() {
+            if choices_vec[idx_decision].stuck() {
                 // failed
                 output(
                     format!(" failed\nFinal coloring: {:?}\n\n", coloring).as_str(),
@@ -471,7 +471,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             }
 
             // choose the color that restricts the other variables the least
-            let color_choice = choices_vec[idx_to_assign]
+            let color_decision = choices_vec[idx_decision]
                 .as_arr()
                 .iter()
                 .filter(|(a, _)| *a)
@@ -480,7 +480,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                     let mut choices_vec = choices_vec.clone();
 
                     // remove the color from the choices of the neighbors
-                    for &nb in self.neighbors(idx_to_assign) {
+                    for &nb in self.neighbors(idx_decision) {
                         choices_vec[nb].remove(*c);
                     }
 
@@ -492,9 +492,9 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                 .1;
 
             // commit to the color assignment that was chosen
-            coloring.insert(idx_to_assign, color_choice);
-            for &nb in self.neighbors(idx_to_assign) {
-                choices_vec[nb].remove(color_choice);
+            coloring.insert(idx_decision, color_decision);
+            for &nb in self.neighbors(idx_decision) {
+                choices_vec[nb].remove(color_decision);
             }
         }
 
