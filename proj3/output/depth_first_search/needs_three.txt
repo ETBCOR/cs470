@@ -8,9 +8,10 @@ Starting a depth first search with two colors... failed
 Final coloring: {0: G, 1: R}
 
 Starting a depth first search with three colors... completed
-Final coloring: {
-    2: R,
-    0: B,
-    1: G,
-}
+Final coloring: {0: B, 1: G, 2: R}
+Detailed graph:
+X1: B --> (X2: G, X3: R)
+X2: G --> (X1: B, X3: R)
+X3: R --> (X1: B, X2: G)
+
 

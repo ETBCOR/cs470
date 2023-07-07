@@ -12,16 +12,17 @@ X9 --> (X2, X4, X6, X8, X10)
 X10 --> (X1, X3, X5, X7, X9)
 
 Starting a local search with two colors... completed (iterations: 0)
-Final coloring: {
-    8: R,
-    2: R,
-    7: G,
-    6: R,
-    5: G,
-    9: G,
-    1: G,
-    0: R,
-    4: R,
-    3: G,
-}
+Final coloring: {0: R, 1: G, 2: R, 3: G, 4: R, 5: G, 6: R, 7: G, 8: R, 9: G}
+Detailed graph:
+X1: R --> (X2: G, X4: G, X6: G, X8: G, X10: G)
+X2: G --> (X1: R, X3: R, X5: R, X7: R, X9: R)
+X3: R --> (X2: G, X4: G, X6: G, X8: G, X10: G)
+X4: G --> (X1: R, X3: R, X5: R, X7: R, X9: R)
+X5: R --> (X2: G, X4: G, X6: G, X8: G, X10: G)
+X6: G --> (X1: R, X3: R, X5: R, X7: R, X9: R)
+X7: R --> (X2: G, X4: G, X6: G, X8: G, X10: G)
+X8: G --> (X1: R, X3: R, X5: R, X7: R, X9: R)
+X9: R --> (X2: G, X4: G, X6: G, X8: G, X10: G)
+X10: G --> (X1: R, X3: R, X5: R, X7: R, X9: R)
+
 

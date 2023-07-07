@@ -32,42 +32,43 @@ X29 --> (X1, X4, X5, X9, X14, X17, X18, X25, X30)
 X30 --> (X4, X8, X14, X17, X19, X22, X29)
 
 Starting a depth first search with two colors... failed
-Final coloring: {6: G, 2: R, 7: R, 1: R, 0: G, 9: G}
+Final coloring: {0: G, 1: R, 2: R, 6: G, 7: R, 9: G}
 
 Starting a depth first search with three colors... failed
-Final coloring: {10: R, 13: G, 6: B, 20: R, 0: B, 9: B, 2: G, 7: G, 23: R, 16: B, 1: G, 11: B, 21: B, 27: R, 17: B, 5: G, 8: G, 22: B, 28: R}
+Final coloring: {0: B, 1: G, 2: G, 5: G, 6: B, 7: G, 8: G, 9: B, 10: R, 11: B, 13: G, 16: B, 17: B, 20: R, 21: B, 22: B, 23: R, 27: R, 28: R}
 
 Starting a depth first search with four colors... completed
-Final coloring: {
-    25: Y,
-    0: Y,
-    24: B,
-    28: G,
-    13: B,
-    22: Y,
-    15: Y,
-    26: G,
-    29: R,
-    11: Y,
-    6: Y,
-    17: Y,
-    4: Y,
-    1: B,
-    8: B,
-    10: G,
-    3: B,
-    7: B,
-    9: Y,
-    23: G,
-    19: Y,
-    5: B,
-    18: Y,
-    12: G,
-    20: G,
-    27: G,
-    16: Y,
-    21: Y,
-    14: B,
-    2: B,
-}
+Final coloring: {0: Y, 1: B, 2: B, 3: B, 4: Y, 5: B, 6: Y, 7: B, 8: B, 9: Y, 10: G, 11: Y, 12: G, 13: B, 14: B, 15: Y, 16: Y, 17: Y, 18: Y, 19: Y, 20: G, 21: Y, 22: Y, 23: G, 24: B, 25: Y, 26: G, 27: G, 28: G, 29: R}
+Detailed graph:
+X1: Y --> (X2: B, X3: B, X15: B, X29: G)
+X2: B --> (X1: Y, X21: G, X22: Y)
+X3: B --> (X1: Y, X7: Y, X10: Y, X18: Y, X19: Y, X24: G, X28: G)
+X4: B --> (X22: Y, X29: G, X30: R)
+X5: Y --> (X14: B, X15: B, X27: G, X29: G)
+X6: B --> (X12: Y, X20: Y, X22: Y, X28: G)
+X7: Y --> (X3: B, X8: B, X27: G)
+X8: B --> (X7: Y, X10: Y, X11: G, X17: Y, X19: Y, X30: R)
+X9: B --> (X10: Y, X11: G, X23: Y, X29: G)
+X10: Y --> (X3: B, X8: B, X9: B, X11: G, X24: G)
+X11: G --> (X8: B, X9: B, X10: Y, X14: B, X17: Y, X18: Y, X23: Y)
+X12: Y --> (X6: B, X13: G, X14: B, X24: G)
+X13: G --> (X12: Y, X15: B, X26: Y)
+X14: B --> (X5: Y, X11: G, X12: Y, X18: Y, X24: G, X29: G, X30: R)
+X15: B --> (X1: Y, X5: Y, X13: G, X22: Y, X23: Y, X27: G)
+X16: Y --> (X25: B)
+X17: Y --> (X8: B, X11: G, X29: G, X30: R)
+X18: Y --> (X3: B, X11: G, X14: B, X21: G, X25: B, X29: G)
+X19: Y --> (X3: B, X8: B, X30: R)
+X20: Y --> (X6: B)
+X21: G --> (X2: B, X18: Y, X23: Y, X26: Y)
+X22: Y --> (X2: B, X4: B, X6: B, X15: B, X24: G, X25: B, X27: G, X30: R)
+X23: Y --> (X9: B, X11: G, X15: B, X21: G, X28: G)
+X24: G --> (X3: B, X10: Y, X12: Y, X14: B, X22: Y)
+X25: B --> (X16: Y, X18: Y, X22: Y, X29: G)
+X26: Y --> (X13: G, X21: G)
+X27: G --> (X5: Y, X7: Y, X15: B, X22: Y)
+X28: G --> (X3: B, X6: B, X23: Y)
+X29: G --> (X1: Y, X4: B, X5: Y, X9: B, X14: B, X17: Y, X18: Y, X25: B, X30: R)
+X30: R --> (X4: B, X8: B, X14: B, X17: Y, X19: Y, X22: Y, X29: G)
+
 

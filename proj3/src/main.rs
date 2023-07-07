@@ -1,7 +1,7 @@
 use graph::prelude::*;
 use rand::{distributions::Standard, prelude::*};
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fmt::{Debug, Display},
     fs::{read_dir, File},
     io::{stdout, BufRead, BufReader, Write},
@@ -80,7 +80,7 @@ impl Distribution<Color> for Standard {
     }
 }
 
-type GraphColoring = HashMap<usize, Color>;
+type GraphColoring = BTreeMap<usize, Color>;
 
 #[derive(Clone, Copy, Debug)]
 enum NumColors {
@@ -166,6 +166,7 @@ impl Choices {
 trait GraphForColoring {
     fn from_file(_: &str) -> Self;
     fn all_edges_text(&self) -> String;
+    fn all_edges_coloring_text(&self, _: &GraphColoring) -> String;
     fn is_complete(&self, _: &GraphColoring) -> bool;
     fn count_confl(&self, _: &GraphColoring) -> usize;
     fn count_confl_idx(&self, _: usize, _: &GraphColoring) -> usize;
@@ -209,15 +210,37 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
         let mut s = String::new();
         for n1 in 0..self.node_count() {
             s += format!("X{} --> (", n1 + 1).as_str();
-            for (idx, n2) in self.neighbors(n1).enumerate() {
+            for (i, n2) in self.neighbors(n1).enumerate() {
                 s += format!(
                     "X{}{}",
                     n2 + 1,
-                    if idx < self.degree(n1) - 1 { ", " } else { "" }
+                    if i < self.degree(n1) - 1 { ", " } else { ")\n" }
                 )
                 .as_str();
             }
-            s += ")\n";
+        }
+        s
+    }
+
+    // fromats graph nodes/edges along with provided color information
+    fn all_edges_coloring_text(&self, coloring: &GraphColoring) -> String {
+        let mut s = String::new();
+        for n1 in 0..self.node_count() {
+            s += format!(
+                "X{index}: {color:?} --> (",
+                index = n1 + 1,
+                color = coloring.get(&n1).unwrap_or(&Color::Empty)
+            )
+            .as_str();
+            for (i, n2) in self.neighbors(n1).enumerate() {
+                s += format!(
+                    "X{index}: {color:?}{comma}",
+                    index = n2 + 1,
+                    color = coloring.get(&n2).unwrap_or(&Color::Empty),
+                    comma = if i < self.degree(n1) - 1 { ", " } else { ")\n" }
+                )
+                .as_str();
+            }
         }
         s
     }
@@ -255,7 +278,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
     // or via randomness if no valid possition is found for that variable.
     fn naive_coloring(&self, num_colors: NumColors) -> GraphColoring {
         let mut rng = rand::thread_rng();
-        let mut coloring = HashMap::new();
+        let mut coloring = GraphColoring::new();
         let mut visited = vec![false; self.node_count()];
         let mut queue = VecDeque::<usize>::new();
 
@@ -396,8 +419,9 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
         output(
             format!(
-                " completed (iterations: {itr})\nFinal coloring: {:#?}\n\n",
-                &coloring
+                " completed (iterations: {itr})\nFinal coloring: {:?}\nDetailed graph:\n{}\n\n",
+                coloring,
+                self.all_edges_coloring_text(&coloring)
             )
             .as_str(),
             &mut f,
@@ -464,7 +488,12 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
         }
 
         output(
-            format!(" completed\nFinal coloring: {:#?}\n\n", coloring).as_str(),
+            format!(
+                " completed\nFinal coloring: {:?}\nDetailed graph:\n{}\n\n",
+                coloring,
+                self.all_edges_coloring_text(&coloring)
+            )
+            .as_str(),
             &mut f,
         );
         coloring
