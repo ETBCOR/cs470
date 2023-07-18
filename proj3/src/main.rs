@@ -400,7 +400,6 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
             // determine an idx at which to minimize conflicts
             let idx_decision: usize = (0..self.node_count())
-                .into_iter()
                 .filter(|&idx| self.count_confl_idx(idx, &coloring) > 0)
                 .choose_stable(&mut rng)
                 .expect("couldn't find an idx to randomly change");
@@ -453,6 +452,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
         while !self.is_complete(&coloring) {
             // choose the remaining variable with the least legal values
+            // (this is called the least remaining values heuristic)
             let idx_decision: usize = (0..self.node_count())
                 .into_iter()
                 .filter(|x| !coloring.contains_key(x))
@@ -471,6 +471,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             }
 
             // choose the color that restricts the other variables the least
+            // (this is called the least constraining value heuristic)
             let color_decision = choices_vec[idx_decision]
                 .as_arr()
                 .iter()
