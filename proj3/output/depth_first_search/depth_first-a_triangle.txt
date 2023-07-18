@@ -4,10 +4,10 @@ X01 --> [ X02 | X03 ]
 X02 --> [ X01 | X03 ]
 X03 --> [ X01 | X02 ]
 
-Starting a depth first search with two colors... failed
+Starting a depth first search with two colors... failed (iterations: 3)
 Final coloring: {0: G, 1: R}
 
-Starting a depth first search with three colors... completed
+Starting a depth first search with three colors... completed (iterations: 6)
 Final coloring: {0: B, 1: G, 2: R}
 Detailed graph:
 X01: B --> [ X02: G | X03: R ]

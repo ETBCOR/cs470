@@ -449,6 +449,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
         );
         let mut coloring = GraphColoring::new();
         let mut choices_vec = vec![Choices::new(num_colors); self.node_count()];
+        let mut itr: usize = 0;
 
         while !self.is_complete(&coloring) {
             // choose the remaining variable with the least legal values
@@ -464,7 +465,11 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
             if choices_vec[idx_decision].stuck() {
                 // failed
                 output(
-                    format!(" failed\nFinal coloring: {:?}\n\n", coloring).as_str(),
+                    format!(
+                        " failed (iterations: {itr})\nFinal coloring: {:?}\n\n",
+                        coloring
+                    )
+                    .as_str(),
                     &mut f,
                 );
                 return coloring;
@@ -485,6 +490,8 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
                         choices_vec[nb].remove(*c);
                     }
 
+                    itr += 1;
+
                     (choices_vec.into_iter().fold(0, |a, x| a + x.amount()), *c)
                 })
                 // choose the color that yields the most options for other variables
@@ -501,7 +508,7 @@ impl GraphForColoring for UndirectedCsrGraph<usize> {
 
         output(
             format!(
-                " completed\nFinal coloring: {:?}\nDetailed graph:\n{}\n\n",
+                " completed (iterations: {itr})\nFinal coloring: {:?}\nDetailed graph:\n{}\n\n",
                 coloring,
                 self.all_edges_coloring_text(&coloring)
             )
@@ -524,7 +531,7 @@ fn main() -> Result<(), std::io::Error> {
                 let graph: UndirectedCsrGraph<usize> =
                     GraphForColoring::from_file(format!("input/{path}").as_str());
 
-                _ = graph.local_search_itr(name);
+                // _ = graph.local_search_itr(name);
                 _ = graph.depth_first_search_itr(name);
             }
             Err(e) => return Err(e),

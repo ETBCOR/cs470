@@ -5,7 +5,7 @@ X02 --> [ X01 | X03 ]
 X03 --> [ X02 | X04 ]
 X04 --> [ X01 | X03 ]
 
-Starting a depth first search with two colors... completed
+Starting a depth first search with two colors... completed (iterations: 5)
 Final coloring: {0: G, 1: R, 2: G, 3: R}
 Detailed graph:
 X01: G --> [ X02: R | X04: R ]

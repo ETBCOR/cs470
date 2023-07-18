@@ -31,13 +31,13 @@ X28 --> [ X03 | X06 | X23 ]
 X29 --> [ X01 | X04 | X05 | X09 | X14 | X17 | X18 | X25 | X30 ]
 X30 --> [ X04 | X08 | X14 | X17 | X19 | X22 | X29 ]
 
-Starting a depth first search with two colors... failed
+Starting a depth first search with two colors... failed (iterations: 7)
 Final coloring: {0: G, 1: R, 2: R, 6: G, 7: R, 9: G}
 
-Starting a depth first search with three colors... failed
+Starting a depth first search with three colors... failed (iterations: 26)
 Final coloring: {0: B, 1: G, 2: G, 5: G, 6: B, 7: G, 8: G, 9: B, 10: R, 11: B, 13: G, 16: B, 17: B, 20: R, 21: B, 22: B, 23: R, 27: R, 28: R}
 
-Starting a depth first search with four colors... completed
+Starting a depth first search with four colors... completed (iterations: 69)
 Final coloring: {0: Y, 1: B, 2: B, 3: B, 4: Y, 5: B, 6: Y, 7: B, 8: B, 9: Y, 10: G, 11: Y, 12: G, 13: B, 14: B, 15: Y, 16: Y, 17: Y, 18: Y, 19: Y, 20: G, 21: Y, 22: Y, 23: G, 24: B, 25: Y, 26: G, 27: G, 28: G, 29: R}
 Detailed graph:
 X01: Y --> [ X02: B | X03: B | X15: B | X29: G ]
